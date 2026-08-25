@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createSnapshot, createTrend } from "./pumpEngine";
+import { createScenarioComparison, createSnapshot, createTrend } from "./pumpEngine";
 
 describe("SmartPump-X hydraulic digital twin", () => {
   it("returns a coherent healthy operating point with positive hydraulic power", () => {
@@ -34,5 +34,21 @@ describe("SmartPump-X hydraulic digital twin", () => {
     expect(trend).toHaveLength(36);
     expect(trend[0]!.timestamp).toBeLessThan(trend[35]!.timestamp);
     expect(trend.every(point => point.healthScore >= 0 && point.healthScore <= 100)).toBe(true);
+  });
+
+  it("assesses configured operating-envelope guardrails without presenting them as physical equipment limits", () => {
+    const normal = createSnapshot("normal");
+    const cavitationLike = createSnapshot("cavitationLike");
+    expect(normal.operatingEnvelope.status).toBe("preferred");
+    expect(cavitationLike.operatingEnvelope.checks.find(check => check.key === "npsh")?.status).toBe("caution");
+    expect(normal.operatingEnvelope.notice).toMatch(/not manufacturer limits/i);
+  });
+
+  it("compares a synthetic condition against the same bounded baseline inputs", () => {
+    const comparison = createScenarioComparison("bearing", { rpm: 2200, staticHeadM: 3 });
+    expect(comparison.baseline.scenario).toBe("normal");
+    expect(comparison.candidate.scenario).toBe("bearing");
+    expect(comparison.deltas.find(delta => delta.key === "health")?.change).toBeLessThan(0);
+    expect(comparison.scopeNotice).toMatch(/does not validate a field fault/i);
   });
 });

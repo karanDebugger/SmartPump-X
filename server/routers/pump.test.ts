@@ -36,6 +36,14 @@ describe("pump router contracts", () => {
     expect(adjusted.sensors.temperature.value).toBeGreaterThan(baseline.sensors.temperature.value);
   });
 
+  it("returns a public comparison against the normal synthetic baseline using the same guest inputs", async () => {
+    const caller = pumpRouter.createCaller(anonymousContext());
+    const comparison = await caller.comparison({ scenario: "bearing", inputs: { rpm: 2200, staticHeadM: 3 } });
+    expect(comparison.baseline.scenario).toBe("normal");
+    expect(comparison.candidate.scenario).toBe("bearing");
+    expect(comparison.deltas.find(delta => delta.key === "health")?.change).toBeLessThan(0);
+  });
+
   it("rejects guest simulation input outside the declared physical demonstration bounds", async () => {
     const caller = pumpRouter.createCaller(anonymousContext());
     await expect(caller.snapshot({ scenario: "normal", inputs: { rpm: 4500 } })).rejects.toMatchObject({ code: "BAD_REQUEST" });

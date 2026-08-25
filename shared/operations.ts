@@ -22,3 +22,16 @@ export const mqttBridgeContract = {
   excludedFields: ["command", "setpoint", "start", "stop", "speed", "actuator"],
   safety: "Ingestion is one-way. SmartPump-X does not publish MQTT commands or operate pump hardware.",
 } as const;
+
+export type TelemetryQualitySummary = {
+  source: "database" | "no_accepted_telemetry";
+  status: "nominal" | "attention" | "unavailable";
+  acceptedSamples: number;
+  latestCapturedAt: number | null;
+  ageMinutes: number | null;
+  qualityBreakdown: Array<{ quality: "good" | "degraded" | "suspect" | "missing"; count: number }>;
+  metrics: Array<{ metric: string; unit: string; latestValue: number; capturedAt: number; quality: "good" | "degraded" | "suspect" | "missing"; samples: number }>;
+  rejectionGuards: string[];
+  summary: string;
+  notice: string;
+};

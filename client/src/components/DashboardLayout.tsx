@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import SimulationControls from "@/components/SimulationControls";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Activity, BellRing, BookOpenCheck, ClipboardCheck, Gauge, LayoutDashboard, LogOut, PanelLeft, Radio, ShieldCheck, SlidersHorizontal, Wrench } from "lucide-react";
+import { Activity, BellRing, BookOpenCheck, ClipboardCheck, Gauge, LayoutDashboard, LogOut, PanelLeft, Radio, Scale, ShieldCheck, SlidersHorizontal, Wrench } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import {
   Sidebar,
@@ -25,10 +25,12 @@ const menuItems = [
   { icon: Activity, label: "Telemetry", anchor: "telemetry" },
   { icon: BellRing, label: "Conditions", anchor: "conditions" },
   { icon: Wrench, label: "Maintenance", anchor: "maintenance" },
+  { icon: Scale, label: "Scenario analysis", anchor: "scenario-comparison" },
   { icon: BookOpenCheck, label: "Engineering basis", anchor: "engineering" },
 ];
 
 const operatorMenuItems = [
+  { icon: ShieldCheck, label: "Operational readiness", anchor: "operations-readiness" },
   { icon: ClipboardCheck, label: "Commissioning", anchor: "commissioning" },
   { icon: Radio, label: "Telemetry bridge", anchor: "telemetry-bridge" },
   { icon: BellRing, label: "Test workflow", anchor: "test-workflow" },
@@ -86,6 +88,7 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
 
   return (
     <>
+      <a href="#main-content" className="sr-only z-[60] rounded-md bg-cyan-300 px-3 py-2 text-sm font-semibold text-slate-950 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to dashboard content</a>
       <div className="relative" ref={sidebarRef}>
         <Sidebar collapsible="icon" className="border-r border-white/8 bg-[#07121b] text-slate-100">
           <SidebarHeader className="h-[84px] border-b border-white/8 px-3 py-4">
@@ -97,15 +100,15 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
             </div>
           </SidebarHeader>
           <SidebarContent className="py-4">
-            <SidebarMenu className="px-2">
+            <nav aria-label="Control tower navigation"><SidebarMenu className="px-2">
               {[...menuItems, ...(user ? operatorMenuItems : [])].map(item => (
                 <SidebarMenuItem key={item.anchor}>
-                  <SidebarMenuButton onClick={() => jumpTo(item.anchor)} tooltip={item.label} className="h-10 text-slate-300 hover:bg-white/7 hover:text-white data-[active=true]:bg-cyan-400/10 data-[active=true]:text-cyan-200">
+                  <SidebarMenuButton onClick={() => jumpTo(item.anchor)} aria-controls={item.anchor} tooltip={item.label} className="h-10 text-slate-300 hover:bg-white/7 hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-300 data-[active=true]:bg-cyan-400/10 data-[active=true]:text-cyan-200">
                     <item.icon className="h-4 w-4" /><span>{item.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-            </SidebarMenu>
+            </SidebarMenu></nav>
             {!isCollapsed && <div className="mx-4 mt-8 rounded-xl border border-cyan-300/10 bg-cyan-400/[0.04] p-3"><div className="flex items-center gap-2 text-xs font-medium text-cyan-200"><ShieldCheck className="h-4 w-4" /> Demonstration mode</div><p className="mt-2 text-[11px] leading-5 text-slate-400">All present telemetry is synthetic or derived. No physical pump is controlled.</p></div>}
           </SidebarContent>
           <SidebarFooter className="border-t border-white/8 p-3">
@@ -116,7 +119,7 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
       </div>
       <SidebarInset className="bg-[#07111a] text-slate-100">
         {isMobile && <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-white/8 bg-[#07111a]/95 px-3 backdrop-blur"><SidebarTrigger className="border border-white/10 bg-white/5 text-slate-100" /><span className="text-sm font-medium">SmartPump-X</span></div>}
-        <main className="min-h-screen flex-1"><SimulationControls />{children}</main>
+        <main id="main-content" tabIndex={-1} className="min-h-screen flex-1 focus:outline-none"><SimulationControls />{children}</main>
       </SidebarInset>
     </>
   );

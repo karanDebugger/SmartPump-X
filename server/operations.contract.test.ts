@@ -17,6 +17,8 @@ describe("SmartPump-X operational contracts", () => {
     const caller = operationsRouter.createCaller(anonymousContext());
     await expect(caller.mqttContract()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     await expect(caller.commissioning()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(caller.readiness()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(caller.telemetryQuality()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     await expect(caller.requestFaultTest({ assetTag: "P-101", scenario: "bearing", objective: "Attempt an unauthorized controlled test request.", riskLevel: "low", scheduledAt: Date.now() + 60_000 })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 
@@ -35,6 +37,11 @@ describe("SmartPump-X operational contracts", () => {
   it("prevents viewers from activating a calibration record", async () => {
     const caller = operationsRouter.createCaller(contextFor("viewer"));
     await expect(caller.createCalibration({ assetTag: "P-101", sensorKey: "FT-101", metric: "flow", unit: "L/min", rangeMin: 0, rangeMax: 80, revision: "CAL-01", validUntil: Date.now() + 86_400_000 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("prevents administrators from creating a calibration that is already expired", async () => {
+    const caller = operationsRouter.createCaller(contextFor("admin"));
+    await expect(caller.createCalibration({ assetTag: "P-101", sensorKey: "FT-101", metric: "flow", unit: "L/min", rangeMin: 0, rangeMax: 80, revision: "CAL-EXPIRED", validUntil: Date.now() - 1 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
   it("builds an exportable report that explicitly records the no-actuation boundary", () => {

@@ -1,10 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { commissioningChecklist, mqttBridgeContract, starterBom } from "../../shared/operations";
-import { closeFaultTest, createFaultTestRequest, decideFaultTest, getCommissioningSummary, getFaultTestReport, listBom, listCalibrations, listFaultTestHistory, recordFaultTestExecution, setCalibration, storeValidatedTelemetry } from "../operations";
+import { closeFaultTest, createFaultTestRequest, decideFaultTest, getCommissioningSummary, getFaultTestReport, getTelemetryQualitySummary, listBom, listCalibrations, listFaultTestHistory, recordFaultTestExecution, setCalibration, storeValidatedTelemetry } from "../operations";
 import { isTelemetryBridgeAuthorized } from "../telemetryAuth";
 import { validateBridgeTelemetry } from "../telemetryValidation";
 import { buildFaultTestReport } from "../reportBuilder";
+import { evaluateOperationalReadiness } from "../operationalReadiness";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -42,6 +43,7 @@ export const operationsRouter = router({
   }),
   createCalibration: adminProcedure.input(z.object({ assetTag: z.string().min(2).max(32), sensorKey: z.string().min(2).max(64), metric: z.string().min(2).max(64), unit: z.string().min(1).max(32), rangeMin: z.number().finite(), rangeMax: z.number().finite(), revision: z.string().min(1).max(32), validUntil: z.number().int() })).mutation(async ({ ctx, input }) => {
     if (input.rangeMin >= input.rangeMax) throw new TRPCError({ code: "BAD_REQUEST", message: "Calibration minimum must be lower than calibration maximum." });
+    if (input.validUntil <= Date.now()) throw new TRPCError({ code: "BAD_REQUEST", message: "Calibration validity must end in the future." });
     return setCalibration({ ...input, approvedBy: ctx.user.id });
   }),
   calibrations: protectedProcedure.input(z.object({ assetTag: z.string().min(2).max(32).optional() }).optional()).query(({ input }) => listCalibrations(input?.assetTag)),
@@ -65,6 +67,11 @@ export const operationsRouter = router({
       })),
     };
   }),
+  readiness: protectedProcedure.query(async () => {
+    const [calibrations, commissioning, faultTests] = await Promise.all([listCalibrations("P-101"), getCommissioningSummary(), listFaultTestHistory({ assetTag: "P-101" })]);
+    return evaluateOperationalReadiness({ calibrations, commissioning, faultTests });
+  }),
+  telemetryQuality: protectedProcedure.query(() => getTelemetryQualitySummary("P-101")),
   requestFaultTest: engineerProcedure.input(z.object({ assetTag: z.string().min(2).max(32), scenario: z.string().min(2).max(64), objective: z.string().min(12).max(500), riskLevel: z.enum(["low", "medium", "high"]), scheduledAt: z.number().int() })).mutation(({ ctx, input }) => createFaultTestRequest({ ...input, requestedBy: ctx.user.id })),
   decideFaultTest: adminProcedure.input(z.object({ requestId: z.number().int().positive(), approved: z.boolean(), note: z.string().min(8).max(500) })).mutation(({ ctx, input }) => decideFaultTest({ ...input, actorId: ctx.user.id })),
   recordFaultTestExecution: engineerProcedure.input(z.object({ requestId: z.number().int().positive(), evidence: z.string().min(12).max(500) })).mutation(async ({ ctx, input }) => {

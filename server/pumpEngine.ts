@@ -1,4 +1,4 @@
-import { simulationInputDefaults, type FaultEvidence, type HealthBand, type ScenarioKind, type SimulationInputs, type TrendPoint, type TwinSnapshot } from "../shared/smartPump";
+import { simulationInputDefaults, type FaultEvidence, type HealthBand, type OperatingEnvelope, type ScenarioComparison, type ScenarioKind, type SimulationInputs, type TrendPoint, type TwinSnapshot } from "../shared/smartPump";
 
 const WATER_DENSITY_KG_M3 = 998;
 const GRAVITY_M_S2 = 9.80665;
@@ -196,6 +196,30 @@ function healthBand(score: number): HealthBand {
   return "severe";
 }
 
+function envelopeCheckStatus(value: number, preferred: (value: number) => boolean, caution: (value: number) => boolean) {
+  if (preferred(value)) return "preferred" as const;
+  if (caution(value)) return "caution" as const;
+  return "outside" as const;
+}
+
+function assessOperatingEnvelope(input: { flowLpm: number; expectedFlowLpm: number; temperatureC: number; vibrationMmS: number; npshMarginM: number; efficiencyPct: number }): OperatingEnvelope {
+  const flowRatio = input.flowLpm / input.expectedFlowLpm;
+  const checks: OperatingEnvelope["checks"] = [
+    { key: "flow", label: "Flow relative to duty proxy", value: round(input.flowLpm), unit: "L/min", status: envelopeCheckStatus(flowRatio, value => value >= 0.85 && value <= 1.15, value => value >= 0.7 && value <= 1.35), guidance: "Preferred proxy band: 85–115% of the speed-scaled duty-flow estimate." },
+    { key: "temperature", label: "Pump temperature proxy", value: round(input.temperatureC), unit: "°C", status: envelopeCheckStatus(input.temperatureC, value => value <= 48, value => value <= 55), guidance: "Configured demonstration guardrail: ≤48 °C preferred; 48–55 °C caution." },
+    { key: "vibration", label: "Broadband vibration proxy", value: round(input.vibrationMmS, 2), unit: "mm/s RMS", status: envelopeCheckStatus(input.vibrationMmS, value => value <= 1.8, value => value <= 3.5), guidance: "Configured demonstration guardrail: ≤1.8 mm/s preferred; 1.8–3.5 mm/s caution." },
+    { key: "npsh", label: "NPSH margin proxy", value: round(input.npshMarginM, 2), unit: "m", status: envelopeCheckStatus(input.npshMarginM, value => value >= 1.2, value => value >= 0.8), guidance: "Configured demonstration guardrail: ≥1.2 m preferred; 0.8–1.2 m caution." },
+    { key: "efficiency", label: "Wire-to-water efficiency", value: round(input.efficiencyPct, 1), unit: "%", status: envelopeCheckStatus(input.efficiencyPct, value => value >= 60, value => value >= 48), guidance: "Configured demonstration guardrail: ≥60% preferred; 48–60% caution." },
+  ];
+  const status = checks.some(check => check.status === "outside") ? "outside" : checks.some(check => check.status === "caution") ? "caution" : "preferred";
+  return {
+    status,
+    summary: status === "preferred" ? "All configured model checks are inside the preferred demonstration zone." : status === "caution" ? "At least one configured model check is in the caution zone; review the evidence before drawing a physical conclusion." : "One or more configured model checks are outside the demonstration envelope; this warrants controlled engineering review, not automatic equipment action.",
+    notice: "These are transparent prototype guardrails for the synthetic model, not manufacturer limits, a permit-to-operate, or a substitute for a physical safety review.",
+    checks,
+  };
+}
+
 export function scenarioDetails(scenario: ScenarioKind) {
   return scenarioConfiguration[scenario];
 }
@@ -248,6 +272,7 @@ export function createSnapshot(scenario: ScenarioKind, inputOverrides: Partial<S
   const band = healthBand(healthScore);
   const anomalyScore = Math.round(clamp(100 - healthScore + (scenario === "normal" ? 1 : 4), 1, 99));
   const confidence = config.quality === "good" ? 88 : config.quality === "degraded" ? 71 : 58;
+  const operatingEnvelope = assessOperatingEnvelope({ flowLpm: reportedFlowLpm, expectedFlowLpm: expectedFlow, temperatureC: temperature, vibrationMmS: vibration, npshMarginM: npshMargin, efficiencyPct: efficiency * 100 });
 
   return {
     asset: {
@@ -292,6 +317,27 @@ export function createSnapshot(scenario: ScenarioKind, inputOverrides: Partial<S
       evidence: config.evidence,
     },
     maintenance: config.maintenance,
+    operatingEnvelope,
+  };
+}
+
+export function createScenarioComparison(scenario: ScenarioKind, inputOverrides: Partial<SimulationInputs> = {}): ScenarioComparison {
+  const baseline = createSnapshot("normal", inputOverrides);
+  const candidate = createSnapshot(scenario, inputOverrides);
+  const deltas: ScenarioComparison["deltas"] = [
+    { key: "flow", label: "Flow", unit: "L/min", baseline: baseline.sensors.flow.value, candidate: candidate.sensors.flow.value, change: round(candidate.sensors.flow.value - baseline.sensors.flow.value, 1) },
+    { key: "head", label: "Head", unit: "m", baseline: baseline.calculations.headM, candidate: candidate.calculations.headM, change: round(candidate.calculations.headM - baseline.calculations.headM, 2) },
+    { key: "inputPower", label: "Input power", unit: "W", baseline: baseline.calculations.electricalInputW, candidate: candidate.calculations.electricalInputW, change: round(candidate.calculations.electricalInputW - baseline.calculations.electricalInputW) },
+    { key: "efficiency", label: "Wire-to-water efficiency", unit: "%", baseline: baseline.calculations.wireToWaterEfficiencyPct, candidate: candidate.calculations.wireToWaterEfficiencyPct, change: round(candidate.calculations.wireToWaterEfficiencyPct - baseline.calculations.wireToWaterEfficiencyPct, 1) },
+    { key: "npshMargin", label: "NPSH margin", unit: "m", baseline: baseline.calculations.npshMarginM, candidate: candidate.calculations.npshMarginM, change: round(candidate.calculations.npshMarginM - baseline.calculations.npshMarginM, 2) },
+    { key: "health", label: "Health score", unit: "/100", baseline: baseline.health.score, candidate: candidate.health.score, change: candidate.health.score - baseline.health.score },
+  ];
+  return {
+    baseline,
+    candidate,
+    deltas,
+    summary: scenario === "normal" ? "The active scenario is the synthetic baseline. Select a condition signature to compare its isolated model effect." : `${candidate.scenarioLabel} is compared against the normal synthetic baseline at the same visible simulation inputs.`,
+    scopeNotice: "This comparison isolates the configured synthetic scenario effect. It does not validate a field fault, identify a root cause, or command hardware.",
   };
 }
 

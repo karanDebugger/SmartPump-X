@@ -49,6 +49,22 @@ export type FaultEvidence = {
   contribution: "primary" | "supporting";
 };
 
+export type OperatingEnvelopeCheck = {
+  key: "flow" | "temperature" | "vibration" | "npsh" | "efficiency";
+  label: string;
+  value: number;
+  unit: string;
+  status: "preferred" | "caution" | "outside";
+  guidance: string;
+};
+
+export type OperatingEnvelope = {
+  status: "preferred" | "caution" | "outside";
+  summary: string;
+  notice: string;
+  checks: OperatingEnvelopeCheck[];
+};
+
 export type TwinSnapshot = {
   asset: {
     tag: string;
@@ -101,6 +117,22 @@ export type TwinSnapshot = {
     action: string;
     inspectionWindow: string;
   } | null;
+  operatingEnvelope: OperatingEnvelope;
+};
+
+export type ScenarioComparison = {
+  baseline: TwinSnapshot;
+  candidate: TwinSnapshot;
+  deltas: Array<{
+    key: "flow" | "head" | "inputPower" | "efficiency" | "npshMargin" | "health";
+    label: string;
+    unit: string;
+    baseline: number;
+    candidate: number;
+    change: number;
+  }>;
+  summary: string;
+  scopeNotice: string;
 };
 
 export type TrendPoint = {

@@ -25,9 +25,13 @@ The project addresses a practical engineering challenge: how to build a credible
 | **Industrial control tower** | Responsive dark-mode dashboard for health, telemetry, conditions, maintenance, engineering basis, commissioning, telemetry bridge, and test workflow. |
 | **Hydraulic digital twin** | Deterministic pump and system curves; flow, head, differential pressure, hydraulic power, electrical power, wire-to-water efficiency, flow residual, and NPSH-margin proxy. |
 | **Condition simulator** | Transparent synthetic scenarios for normal operation, bearing degradation, impeller blockage, valve restriction, cavitation-like instability, overheating, sensor drift, and reduced flow. |
+| **Operating-envelope assessment** | Visible synthetic guardrails for flow, temperature, vibration, NPSH-margin, and wire-to-water efficiency; clearly labelled as prototype model checks rather than manufacturer limits or operating permission. |
+| **Scenario impact comparison** | Side-by-side normal-baseline versus active-scenario deltas at identical browser-local inputs, with an explicit no-field-validation and no-actuation boundary. |
 | **Health intelligence** | Explainable prototype health score, confidence, evidence, probable condition, and maintenance recommendation. |
 | **Telemetry bridge** | A token-authenticated `POST /api/telemetry/ingest` endpoint for a broker-to-HTTP bridge; calibrated telemetry only. |
+| **Telemetry-quality diagnostics** | Authenticated view of accepted telemetry freshness, reported quality mix, latest values by metric, and the bridge safeguards that reject unsafe or uncalibrated payloads. |
 | **Calibration governance** | Asset, sensor, metric, unit, valid range, revision, validity date, and approving operator are tracked before telemetry is stored. |
+| **Operational readiness** | Authenticated summary of recorded commissioning evidence, currently valid calibration, open high-risk controlled tests, and the fixed one-way interface boundary. |
 | **CAD / BOM readiness** | Structured component-selection baseline and commissioning checklist for the future physical rig. |
 | **Controlled fault-test governance** | Request → approval/rejection → execution evidence → closure → filtered history → Markdown report export. |
 
@@ -68,6 +72,8 @@ flowchart LR
 The synthetic dashboard is public and requires no sign-in. Authentication remains required for operational actions such as creating calibrations, submitting or approving controlled tests, recording evidence, and interacting with the machine telemetry bridge.
 
 The dashboard also includes an **Adjustable simulation inputs** panel. Drive speed, static head, system-resistance multiplier, and inlet temperature are bounded synthetic inputs that recalculate the current local view only. They do not modify database telemetry, publish MQTT messages, or operate equipment.
+
+The public dashboard additionally exposes **Scenario analysis**. It compares the active synthetic condition against the normal synthetic baseline at the same local inputs and displays configured operating-envelope checks. Those checks explain the demonstrator model only; they are not manufacturer operating limits, a permit-to-work, or evidence that a physical fault is present.
 
 | Guest-editable synthetic input | Allowed range | Baseline | Effect on the transparent twin |
 |---|---:|---:|---|
@@ -161,6 +167,10 @@ Example payload:
 ```
 
 The service accepts telemetry only after checking the bridge token, strict schema, timestamp window, active calibration revision, unit, and calibrated range. Control-shaped fields such as `command`, `start`, `stop`, `speed`, `setpoint`, and `actuator` are rejected.
+
+An active calibration whose validity date has passed is treated as unavailable by the ingestion gate. Administrators cannot create a calibration record with a past validity date. Authenticated operators can use the readiness panel to identify incomplete commissioning evidence, calibration-expiry risk, and open high-risk controlled tests before relying on the connected-measurement workflow.
+
+The authenticated telemetry-quality panel summarizes only **accepted** measurements. Rejected bridge payloads are intentionally not stored as telemetry. Use the bridge logs to investigate a rejected token, schema, timestamp, calibration, unit, range, or control-shaped-field payload.
 
 See [`docs/mqtt-bridge.md`](docs/mqtt-bridge.md) for the deployment boundary.
 

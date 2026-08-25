@@ -3,7 +3,7 @@ import { z } from "zod";
 import { scenarioKinds, simulationInputBounds } from "../../shared/smartPump";
 import { DEMO_DATASET_VERSION, createDeterministicDemoTrend } from "../demoDataset";
 import { createSimulationPreviewAudit } from "../db";
-import { createSnapshot, scenarioDetails } from "../pumpEngine";
+import { createScenarioComparison, createSnapshot, scenarioDetails } from "../pumpEngine";
 import { isTelemetryBridgeAuthorized } from "../telemetryAuth";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 
@@ -42,6 +42,9 @@ export const pumpRouter = router({
   snapshot: publicProcedure
     .input(z.object({ scenario: scenarioSchema, inputs: simulationInputsSchema }))
     .query(({ input }) => createSnapshot(input.scenario, input.inputs)),
+  comparison: publicProcedure
+    .input(z.object({ scenario: scenarioSchema, inputs: simulationInputsSchema }))
+    .query(({ input }) => createScenarioComparison(input.scenario, input.inputs)),
   trend: publicProcedure
     .input(z.object({ scenario: scenarioSchema, windowMinutes: z.number().int().min(60).max(1_440), inputs: simulationInputsSchema }))
     .query(({ input }) => createDeterministicDemoTrend(input.scenario, input.windowMinutes, input.inputs)),

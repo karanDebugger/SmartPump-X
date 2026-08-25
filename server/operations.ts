@@ -1,5 +1,6 @@
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { bomItems, commissioningChecks, faultTestEvents, faultTestRequests, pumpAssets, sensorCalibrations, telemetry } from "../drizzle/schema";
+import { summarizeTelemetryQuality } from "./telemetryQuality";
 import { getDb } from "./db";
 
 export async function setCalibration(input: { assetTag: string; sensorKey: string; metric: string; unit: string; rangeMin: number; rangeMax: number; revision: string; validUntil: number; approvedBy: number }) {
@@ -24,7 +25,8 @@ export async function findActiveCalibration(assetTag: string, sensorKey: string,
   const db = await getDb();
   if (!db) return undefined;
   const records = await db.select().from(sensorCalibrations).where(and(eq(sensorCalibrations.assetTag, assetTag), eq(sensorCalibrations.sensorKey, sensorKey), eq(sensorCalibrations.revision, revision), eq(sensorCalibrations.status, "active"))).limit(1);
-  return records[0];
+  const calibration = records[0];
+  return calibration && calibration.validUntil > Date.now() ? calibration : undefined;
 }
 
 export async function listCalibrations(assetTag?: string) {
@@ -57,6 +59,15 @@ export async function storeValidatedTelemetry(input: { assetTag: string; sensorK
   if (!db) throw new Error("Database is unavailable.");
   await db.insert(telemetry).values({ assetId: asset.id, capturedAt: input.capturedAt, metric: input.metric, value: input.value.toString(), unit: input.unit, origin: "measured", quality: input.quality, calibrationRevision: input.calibrationRevision });
   return { accepted: true as const, assetId: asset.id, calibrationRevision: input.calibrationRevision };
+}
+
+export async function getTelemetryQualitySummary(assetTag: string) {
+  const db = await getDb();
+  if (!db) return summarizeTelemetryQuality([]);
+  const asset = (await db.select().from(pumpAssets).where(eq(pumpAssets.tag, assetTag)).limit(1))[0];
+  if (!asset) return summarizeTelemetryQuality([]);
+  const records = await db.select().from(telemetry).where(eq(telemetry.assetId, asset.id)).orderBy(desc(telemetry.capturedAt)).limit(250);
+  return summarizeTelemetryQuality(records.map(record => ({ metric: record.metric, value: record.value, unit: record.unit, quality: record.quality, capturedAt: record.capturedAt })));
 }
 
 export async function createFaultTestRequest(input: { assetTag: string; scenario: string; objective: string; riskLevel: "low" | "medium" | "high"; scheduledAt: number; requestedBy: number }) {
