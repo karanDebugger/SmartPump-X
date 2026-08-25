@@ -47,6 +47,71 @@ export const simulationRuns = mysqlTable("simulationRuns", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const sensorCalibrations = mysqlTable("sensorCalibrations", {
+  id: int("id").autoincrement().primaryKey(),
+  assetTag: varchar("assetTag", { length: 32 }).notNull(),
+  sensorKey: varchar("sensorKey", { length: 64 }).notNull(),
+  metric: varchar("metric", { length: 64 }).notNull(),
+  unit: varchar("unit", { length: 32 }).notNull(),
+  rangeMin: decimal("rangeMin", { precision: 14, scale: 5 }).notNull(),
+  rangeMax: decimal("rangeMax", { precision: 14, scale: 5 }).notNull(),
+  revision: varchar("revision", { length: 32 }).notNull(),
+  validUntil: bigint("validUntil", { mode: "number" }).notNull(),
+  status: mysqlEnum("status", ["draft", "active", "expired", "retired"]).default("draft").notNull(),
+  approvedBy: int("approvedBy").notNull().references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const bomItems = mysqlTable("bomItems", {
+  id: int("id").autoincrement().primaryKey(),
+  assembly: varchar("assembly", { length: 80 }).notNull(),
+  component: varchar("component", { length: 160 }).notNull(),
+  quantity: int("quantity").notNull(),
+  material: varchar("material", { length: 160 }).notNull(),
+  specification: text("specification").notNull(),
+  status: mysqlEnum("status", ["to_select", "selected", "ordered", "received"]).default("to_select").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const commissioningChecks = mysqlTable("commissioningChecks", {
+  id: int("id").autoincrement().primaryKey(),
+  checkKey: varchar("checkKey", { length: 80 }).notNull().unique(),
+  groupName: varchar("groupName", { length: 80 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  evidenceRequirement: varchar("evidenceRequirement", { length: 255 }).notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  status: mysqlEnum("status", ["not_started", "in_review", "verified", "blocked"]).default("not_started").notNull(),
+  verifiedBy: int("verifiedBy").references(() => users.id),
+  verifiedAt: bigint("verifiedAt", { mode: "number" }),
+  note: text("note"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const faultTestRequests = mysqlTable("faultTestRequests", {
+  id: int("id").autoincrement().primaryKey(),
+  assetTag: varchar("assetTag", { length: 32 }).notNull(),
+  scenario: varchar("scenario", { length: 64 }).notNull(),
+  objective: varchar("objective", { length: 500 }).notNull(),
+  riskLevel: mysqlEnum("riskLevel", ["low", "medium", "high"]).notNull(),
+  scheduledAt: bigint("scheduledAt", { mode: "number" }).notNull(),
+  requestedBy: int("requestedBy").notNull().references(() => users.id),
+  status: mysqlEnum("status", ["requested", "approved", "rejected", "executed", "closed"]).default("requested").notNull(),
+  approvedBy: int("approvedBy").references(() => users.id),
+  approvalNote: varchar("approvalNote", { length: 500 }),
+  approvedAt: bigint("approvedAt", { mode: "number" }),
+  noActuation: int("noActuation").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const faultTestEvents = mysqlTable("faultTestEvents", {
+  id: int("id").autoincrement().primaryKey(),
+  requestId: int("requestId").notNull().references(() => faultTestRequests.id),
+  eventType: varchar("eventType", { length: 32 }).notNull(),
+  actorId: int("actorId").references(() => users.id),
+  payload: json("payload"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export const telemetry = mysqlTable("telemetry", {
   id: int("id").autoincrement().primaryKey(),
   assetId: int("assetId").notNull().references(() => pumpAssets.id),

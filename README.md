@@ -62,3 +62,5 @@ pnpm check
 The current tests verify healthy hydraulic consistency, degradation behavior, suspect sensor drift, trend chronology, and logout behavior.
 
 The release-specific verification gates are recorded in [`docs/acceptance-criteria.md`](docs/acceptance-criteria.md); the deterministic synthetic-data boundary is recorded in [`docs/synthetic-data-contract.md`](docs/synthetic-data-contract.md).
+
+The ESP32/MQTT bridge endpoint, calibration gate, and physical-broker deployment boundary are documented in [`docs/mqtt-bridge.md`](docs/mqtt-bridge.md).

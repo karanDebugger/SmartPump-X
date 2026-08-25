@@ -10,3 +10,14 @@
 - [x] Add unit and API tests for hydraulic calculations, health scoring, simulation state changes, and core data contracts.
 - [x] Verify the interface on desktop and mobile, inspect server logs, and resolve implementation errors.
 - [x] Produce implementation documentation covering engineering assumptions, synthetic-data limitations, operating model, and next hardware/CAD integration steps.
+- [x] Define ESP32 telemetry payload, topic-to-HTTP bridge contract, calibration metadata, and safe no-actuation ingestion boundary.
+- [x] Add schema and APIs for sensor calibration, BOM components, commissioning checks, controlled fault-test requests, approvals, execution evidence, and event history.
+- [x] Implement validated telemetry ingestion that stores only authenticated, calibrated, unit-aware measurements and rejects control commands.
+- [x] Build role-gated fault-test request, approval, execution-record, and closure workflows with audit history.
+- [x] Add CAD/BOM and commissioning views with component status, test-rig readiness checks, and calibration visibility.
+- [x] Add event-history filtering and exportable fault-test report generation without embedding data as a hardcoded UI artifact.
+- [x] Add unit and API tests for telemetry validation, approval boundaries, report content, and persisted workflow records.
+- [x] Verify the expanded control tower on desktop and mobile, review logs, and document MQTT broker deployment prerequisites.
+- [x] Add a calibration-status query and commissioning view that lists active revisions by asset and sensor.
+- [x] Add asset, scenario, status, and time-window filters to the controlled-test event history API and user interface.
+- [x] Add persisted request, approval, execution, closure, history, and report API workflow tests with transition assertions.

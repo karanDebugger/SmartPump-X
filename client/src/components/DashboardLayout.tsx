@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Activity, BellRing, BookOpenCheck, Gauge, LayoutDashboard, LogOut, PanelLeft, ShieldCheck, Wrench } from "lucide-react";
+import { Activity, BellRing, BookOpenCheck, ClipboardCheck, Gauge, LayoutDashboard, LogOut, PanelLeft, Radio, ShieldCheck, Wrench } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import {
   Sidebar,
@@ -25,6 +25,9 @@ const menuItems = [
   { icon: BellRing, label: "Conditions", anchor: "conditions" },
   { icon: Wrench, label: "Maintenance", anchor: "maintenance" },
   { icon: BookOpenCheck, label: "Engineering basis", anchor: "engineering" },
+  { icon: ClipboardCheck, label: "Commissioning", anchor: "commissioning" },
+  { icon: Radio, label: "Telemetry bridge", anchor: "telemetry-bridge" },
+  { icon: BellRing, label: "Test workflow", anchor: "test-workflow" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "smartpump-sidebar-width";

@@ -4,7 +4,8 @@ import { scenarioKinds } from "../../shared/smartPump";
 import { DEMO_DATASET_VERSION, createDeterministicDemoTrend } from "../demoDataset";
 import { createSimulationPreviewAudit } from "../db";
 import { createSnapshot, scenarioDetails } from "../pumpEngine";
-import { protectedProcedure, router } from "../_core/trpc";
+import { isTelemetryBridgeAuthorized } from "../telemetryAuth";
+import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 
 const scenarioSchema = z.enum(scenarioKinds);
 
@@ -16,6 +17,14 @@ const engineerProcedure = protectedProcedure.use(({ ctx, next }) => {
 });
 
 export const pumpRouter = router({
+  bridgeHealth: publicProcedure
+    .input(z.object({ bridgeToken: z.string().min(24).max(512) }))
+    .query(({ input }) => {
+      if (!isTelemetryBridgeAuthorized(input.bridgeToken)) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Telemetry bridge authentication failed." });
+      }
+      return { authorized: true as const, mode: "ingestion_only" as const, actuation: false as const };
+    }),
   scenarios: protectedProcedure.query(() =>
     scenarioKinds.map(key => ({
       key,
