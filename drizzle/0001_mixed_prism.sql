@@ -1,0 +1,1 @@
+-- Intentionally retained as an empty historical migration after regenerating the SmartPump-X domain schema before first application.

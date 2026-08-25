@@ -1,33 +1,79 @@
-import { useAuth } from "@/_core/hooks/useAuth";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { Streamdown } from 'streamdown';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { trpc } from "@/lib/trpc";
+import type { ScenarioKind, TwinSnapshot } from "@shared/smartPump";
+import { Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, Box, ChevronRight, CircleCheck, Droplets, Fan, Gauge, HeartPulse, Info, ShieldAlert, Sparkles, Thermometer, Waves, Wrench } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 
-/**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Workflow, Frontend Best Practices, Design Guide and Common Pitfalls
- */
+const bandClasses: Record<TwinSnapshot["health"]["band"], string> = {
+  healthy: "border-emerald-300/20 bg-emerald-300/10 text-emerald-200",
+  watch: "border-cyan-300/20 bg-cyan-300/10 text-cyan-100",
+  warning: "border-amber-300/20 bg-amber-300/10 text-amber-200",
+  critical: "border-orange-300/20 bg-orange-300/10 text-orange-200",
+  severe: "border-rose-300/20 bg-rose-300/10 text-rose-200",
+};
+
+const severityClasses: Record<TwinSnapshot["anomaly"]["severity"], string> = {
+  none: "text-emerald-200 bg-emerald-300/10 border-emerald-300/20",
+  low: "text-cyan-100 bg-cyan-300/10 border-cyan-300/20",
+  medium: "text-amber-200 bg-amber-300/10 border-amber-300/20",
+  high: "text-orange-200 bg-orange-300/10 border-orange-300/20",
+  critical: "text-rose-200 bg-rose-300/10 border-rose-300/20",
+};
+
+function metricFormat(value: number, decimals = 1) {
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: decimals, minimumFractionDigits: decimals }).format(value);
+}
+
+function getMetricDelta(current: number, baseline: number) {
+  const difference = current - baseline;
+  return { value: Math.abs(difference), direction: difference >= 0 ? "up" : "down" };
+}
+
+function MetricCard({ icon: Icon, label, value, unit, baseline, tone = "cyan" }: { icon: typeof Gauge; label: string; value: number; unit: string; baseline: number; tone?: "cyan" | "amber" | "violet" | "emerald" }) {
+  const delta = getMetricDelta(value, baseline);
+  const palette = { cyan: "text-cyan-200 bg-cyan-300/10", amber: "text-amber-200 bg-amber-300/10", violet: "text-violet-200 bg-violet-300/10", emerald: "text-emerald-200 bg-emerald-300/10" }[tone];
+  return <Card className="surface-card"><CardContent className="p-4"><div className="flex items-start justify-between"><div className={`grid h-9 w-9 place-items-center rounded-lg ${palette}`}><Icon className="h-4 w-4" /></div><div className="flex items-center gap-1 text-[11px] text-slate-500">{delta.direction === "up" ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}{metricFormat(delta.value, 1)}</div></div><p className="mt-5 text-[11px] font-medium uppercase tracking-[0.13em] text-slate-500">{label}</p><p className="mt-1 text-2xl font-semibold tracking-tight text-white">{metricFormat(value)} <span className="text-sm font-medium text-slate-500">{unit}</span></p></CardContent></Card>;
+}
+
+function TwinDiagram({ snapshot }: { snapshot: TwinSnapshot }) {
+  const degraded = snapshot.health.band !== "healthy";
+  return <div className="relative overflow-hidden rounded-xl border border-white/8 bg-[#081821] p-4 sm:p-6"><div className="pointer-events-none absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(98,198,214,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(98,198,214,.08)_1px,transparent_1px)] [background-size:28px_28px]" /><div className="relative grid gap-5 lg:grid-cols-[1fr_auto_1.1fr]"><div className="rounded-xl border border-cyan-200/15 bg-cyan-300/[0.05] p-4"><div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[.15em] text-cyan-200"><Waves className="h-4 w-4" /> Reservoir T-101</div><div className="mt-7 h-24 rounded-lg border border-cyan-200/20 bg-gradient-to-b from-slate-900 to-cyan-500/25 p-3"><div className="mt-9 h-10 rounded bg-cyan-300/25" /></div><div className="mt-4 flex items-center justify-between text-xs text-slate-400"><span>Level proxy</span><span className="font-medium text-slate-200">73%</span></div></div><div className="flex items-center justify-center"><div className="hidden h-px w-10 bg-cyan-300/50 lg:block" /><div className="grid h-20 w-20 place-items-center rounded-full border-2 border-cyan-200/40 bg-cyan-300/10 shadow-[0_0_32px_rgba(34,211,238,.16)]"><Fan className={`h-8 w-8 text-cyan-100 ${degraded ? "animate-spin" : ""}`} /></div><div className="hidden h-px w-10 bg-cyan-300/50 lg:block" /></div><div className="rounded-xl border border-white/8 bg-white/[.025] p-4"><div className="flex items-center justify-between"><div><p className="text-xs font-semibold uppercase tracking-[.15em] text-slate-300">P-101 / M-101</p><p className="mt-1 text-xs text-slate-500">Centrifugal pump + drive</p></div><Badge className={bandClasses[snapshot.health.band]}>{snapshot.health.band}</Badge></div><div className="mt-5 grid grid-cols-2 gap-3 text-xs"><div className="rounded-lg bg-white/[.04] p-3"><p className="text-slate-500">Flow</p><p className="mt-1 font-semibold text-white">{metricFormat(snapshot.sensors.flow.value)} L/min</p></div><div className="rounded-lg bg-white/[.04] p-3"><p className="text-slate-500">ΔP</p><p className="mt-1 font-semibold text-white">{metricFormat(snapshot.sensors.differentialPressure.value, 2)} bar</p></div><div className="rounded-lg bg-white/[.04] p-3"><p className="text-slate-500">Head</p><p className="mt-1 font-semibold text-white">{metricFormat(snapshot.calculations.headM)} m</p></div><div className="rounded-lg bg-white/[.04] p-3"><p className="text-slate-500">NPSH margin</p><p className="mt-1 font-semibold text-white">{metricFormat(snapshot.calculations.npshMarginM)} m</p></div></div></div></div><div className="relative mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-slate-500"><span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-cyan-300" />Synthetic telemetry</span><span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-violet-300" />Calculated engineering value</span><span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-amber-300" />Modelled condition state</span></div></div>;
+}
+
 export default function Home() {
-  // The useAuth hook provides authentication state.
-  // To implement login/logout, call logout(), or start login from an event
-  // handler: onClick={() => startLogin()} (imported from "@/const"). Never call
-  // startLogin() during render (no href={startLogin()}) — it mints a one-time
-  // nonce cookie and must run only at the moment of navigation.
-  let { user, loading, error, isAuthenticated, logout } = useAuth();
+  const [scenario, setScenario] = useState<ScenarioKind>("normal");
+  const snapshotInput = useMemo(() => ({ scenario }), [scenario]);
+  const trendInput = useMemo(() => ({ scenario, windowMinutes: 360 }), [scenario]);
+  const { data: snapshot, isLoading: snapshotLoading } = trpc.pump.snapshot.useQuery(snapshotInput);
+  const { data: trend = [], isLoading: trendLoading } = trpc.pump.trend.useQuery(trendInput);
+  const { data: scenarios = [] } = trpc.pump.scenarios.useQuery();
+  const { data: engineering } = trpc.pump.engineeringPreview.useQuery(snapshotInput);
 
-  // If theme is switchable in App.tsx, we can implement theme toggling like this:
-  // const { theme, toggleTheme } = useTheme();
+  if (snapshotLoading || !snapshot) return <DashboardLayout><div className="p-6 lg:p-8"><Skeleton className="h-28 bg-white/8" /><div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-36 bg-white/8" />)}</div></div></DashboardLayout>;
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <main>
-        {/* Example: lucide-react for icons */}
-        <Loader2 className="animate-spin" />
-        Example Page
-        {/* Example: Streamdown for markdown rendering */}
-        <Streamdown>Any **markdown** content</Streamdown>
-        <Button variant="default">Example Button</Button>
-      </main>
-    </div>
-  );
+  const sensorCards = [
+    { icon: Droplets, label: "Flow", value: snapshot.sensors.flow.value, unit: "L/min", baseline: 42, tone: "cyan" as const },
+    { icon: Gauge, label: "Differential pressure", value: snapshot.sensors.differentialPressure.value, unit: "bar", baseline: 3.76, tone: "violet" as const },
+    { icon: Thermometer, label: "Pump temperature", value: snapshot.sensors.temperature.value, unit: "°C", baseline: 39, tone: "amber" as const },
+    { icon: Activity, label: "Vibration RMS", value: snapshot.sensors.vibration.value, unit: "mm/s", baseline: 0.82, tone: "emerald" as const },
+  ];
+
+  return <DashboardLayout><div className="min-h-screen p-4 sm:p-6 lg:p-8"><section id="overview" className="rounded-2xl border border-white/8 bg-gradient-to-r from-[#0b1d29] via-[#0a1823] to-[#121326] p-5 shadow-2xl shadow-black/20 sm:p-7"><div className="flex flex-col justify-between gap-6 xl:flex-row xl:items-start"><div><div className="flex flex-wrap items-center gap-2"><Badge className="border-cyan-200/20 bg-cyan-300/10 text-cyan-100">P-101 · live twin preview</Badge><Badge variant="outline" className="border-white/10 text-slate-400">{snapshot.dataStatus.origin} data</Badge></div><h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">Pump health, explained.</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">A vendor-neutral control tower for a low-pressure centrifugal-pump demonstrator. The active model exposes the hydraulic operating point, condition evidence, and maintenance response without claiming validated physical measurements.</p></div><div className="grid grid-cols-[auto_1fr] items-center gap-4 rounded-xl border border-white/10 bg-black/15 px-4 py-3"><div className={`grid h-14 w-14 place-items-center rounded-full border-4 ${bandClasses[snapshot.health.band]}`}><span className="text-lg font-bold">{snapshot.health.score}</span></div><div><p className="text-[11px] font-medium uppercase tracking-[.15em] text-slate-500">Pump health score</p><p className="mt-1 text-sm font-semibold capitalize text-white">{snapshot.health.band} · {snapshot.health.confidence}% model confidence</p><p className="mt-1 text-xs text-slate-500">Score is a configurable prototype index, not RUL.</p></div></div></div><div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{sensorCards.map(metric => <MetricCard key={metric.label} {...metric} />)}</div></section>
+
+  <section id="digital-twin" className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_.65fr]"><Card className="surface-card overflow-hidden"><CardHeader className="flex flex-row items-center justify-between border-b border-white/7 pb-4"><div><CardTitle className="text-base text-white">Hydraulic digital twin</CardTitle><p className="mt-1 text-xs text-slate-500">Physics-based operating-point demonstration · P-101</p></div><Tooltip><TooltipTrigger asChild><Info className="h-4 w-4 text-slate-500" /></TooltipTrigger><TooltipContent>Values are derived from a deterministic pump-curve and system-resistance model.</TooltipContent></Tooltip></CardHeader><CardContent className="p-4 sm:p-5"><TwinDiagram snapshot={snapshot} /></CardContent></Card><Card className="surface-card"><CardHeader className="border-b border-white/7 pb-4"><CardTitle className="text-base text-white">Condition simulator</CardTitle><p className="mt-1 text-xs leading-5 text-slate-500">Preview synthetic fault signatures safely. This does not control physical hardware.</p></CardHeader><CardContent className="space-y-2 p-4">{scenarios.map(item => <button key={item.key} onClick={() => setScenario(item.key as ScenarioKind)} className={`group w-full rounded-xl border p-3 text-left transition-all ${scenario === item.key ? "border-cyan-300/35 bg-cyan-300/10" : "border-white/7 bg-white/[.02] hover:border-white/15 hover:bg-white/[.045]"}`}><div className="flex items-center justify-between gap-2"><p className="text-sm font-medium text-slate-100">{item.label}</p><ChevronRight className={`h-4 w-4 text-slate-500 transition-transform ${scenario === item.key ? "translate-x-0.5 text-cyan-200" : "group-hover:translate-x-0.5"}`} /></div><p className="mt-1 line-clamp-1 text-xs text-slate-500">{item.description}</p></button>)}</CardContent></Card></section>
+
+  <section id="telemetry" className="mt-6 grid gap-6 xl:grid-cols-[1.25fr_.75fr]"><Card className="surface-card"><CardHeader className="flex flex-row items-start justify-between border-b border-white/7 pb-4"><div><CardTitle className="text-base text-white">Telemetry evolution</CardTitle><p className="mt-1 text-xs text-slate-500">Six-hour window · synthetic time series</p></div><Badge className={severityClasses[snapshot.anomaly.severity]}>{snapshot.anomaly.severity === "none" ? "nominal" : `${snapshot.anomaly.severity} condition`}</Badge></CardHeader><CardContent className="p-4"><div className="h-[278px]">{trendLoading ? <Skeleton className="h-full bg-white/8" /> : <ResponsiveContainer width="100%" height="100%"><AreaChart data={trend} margin={{ top: 10, right: 8, left: -20, bottom: 0 }}><defs><linearGradient id="healthFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#22d3ee" stopOpacity={0.28} /><stop offset="100%" stopColor="#22d3ee" stopOpacity={0} /></linearGradient></defs><CartesianGrid vertical={false} stroke="rgba(148,163,184,.12)" /><XAxis dataKey="timestamp" tickFormatter={value => new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} tick={{ fill: "#64748b", fontSize: 11 }} tickLine={false} axisLine={false} /><YAxis domain={[0, 100]} tick={{ fill: "#64748b", fontSize: 11 }} tickLine={false} axisLine={false} /><RechartsTooltip contentStyle={{ background: "#091721", border: "1px solid rgba(255,255,255,.12)", borderRadius: 10 }} labelFormatter={value => new Date(Number(value)).toLocaleString()} formatter={(value: number) => [`${value}`, "Health score"]} /><Area type="monotone" dataKey="healthScore" stroke="#67e8f9" strokeWidth={2} fill="url(#healthFill)" /></AreaChart></ResponsiveContainer>}</div></CardContent></Card><Card className="surface-card"><CardHeader className="border-b border-white/7 pb-4"><CardTitle className="text-base text-white">Live operating point</CardTitle><p className="mt-1 text-xs text-slate-500">System curve intersection proxy</p></CardHeader><CardContent className="p-4"><div className="h-[188px]"><ResponsiveContainer width="100%" height="100%"><LineChart data={trend.slice(-14)} margin={{ top: 10, right: 8, left: -20, bottom: 0 }}><CartesianGrid vertical={false} stroke="rgba(148,163,184,.12)" /><XAxis dataKey="timestamp" hide /><YAxis yAxisId="flow" tick={{ fill: "#64748b", fontSize: 11 }} tickLine={false} axisLine={false} /><YAxis yAxisId="pressure" orientation="right" tick={{ fill: "#64748b", fontSize: 11 }} tickLine={false} axisLine={false} /><RechartsTooltip contentStyle={{ background: "#091721", border: "1px solid rgba(255,255,255,.12)", borderRadius: 10 }} /><Line yAxisId="flow" type="monotone" dataKey="flowLpm" stroke="#67e8f9" strokeWidth={2} dot={false} /><Line yAxisId="pressure" type="monotone" dataKey="pressureBar" stroke="#c4b5fd" strokeWidth={2} dot={false} /></LineChart></ResponsiveContainer></div><div className="mt-4 grid grid-cols-2 gap-3"><div className="rounded-lg bg-white/[.035] p-3"><p className="text-xs text-slate-500">Wire-to-water η</p><p className="mt-1 text-lg font-semibold text-white">{metricFormat(snapshot.calculations.wireToWaterEfficiencyPct)}%</p></div><div className="rounded-lg bg-white/[.035] p-3"><p className="text-xs text-slate-500">Input power</p><p className="mt-1 text-lg font-semibold text-white">{metricFormat(snapshot.calculations.electricalInputW, 0)} W</p></div></div></CardContent></Card></section>
+
+  <section id="conditions" className="mt-6 grid gap-6 xl:grid-cols-[.8fr_1.2fr]"><Card className="surface-card"><CardHeader className="border-b border-white/7 pb-4"><CardTitle className="text-base text-white">Active assessment</CardTitle><p className="mt-1 text-xs text-slate-500">Explainable health-engine output</p></CardHeader><CardContent className="p-5"><div className={`rounded-xl border p-4 ${severityClasses[snapshot.anomaly.severity]}`}><div className="flex gap-3"><ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" /><div><p className="font-semibold">{snapshot.anomaly.probableCondition}</p><p className="mt-1 text-xs leading-5 opacity-75">Anomaly score {snapshot.anomaly.score}/100 · severity {snapshot.anomaly.severity}</p></div></div></div><div className="mt-5 space-y-4">{snapshot.anomaly.evidence.map(item => <div key={item.parameter} className="flex gap-3"><div className={`mt-1 h-2 w-2 rounded-full ${item.contribution === "primary" ? "bg-cyan-300" : "bg-slate-500"}`} /><div><p className="text-sm font-medium text-slate-200">{item.parameter} <span className="ml-1 text-[10px] uppercase tracking-wider text-slate-500">{item.contribution}</span></p><p className="mt-1 text-xs leading-5 text-slate-500">{item.observation}</p></div></div>)}</div></CardContent></Card><Card id="maintenance" className="surface-card"><CardHeader className="border-b border-white/7 pb-4"><CardTitle className="text-base text-white">Maintenance recommendation</CardTitle><p className="mt-1 text-xs text-slate-500">Evidence-linked, operator-readable action</p></CardHeader><CardContent className="p-5">{snapshot.maintenance ? <div><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-lg bg-amber-300/10 text-amber-200"><Wrench className="h-5 w-5" /></div><div><p className="font-medium text-white">{snapshot.maintenance.asset} · {snapshot.maintenance.condition}</p><p className="mt-1 text-xs text-slate-500">Inspection window: {snapshot.maintenance.inspectionWindow}</p></div></div><Separator className="my-5 bg-white/8" /><p className="text-sm leading-6 text-slate-300">{snapshot.maintenance.action}</p><Button variant="outline" className="mt-6 border-white/12 bg-white/[.035] text-slate-200 hover:bg-white/[.08] hover:text-white">Review evidence <ChevronRight className="ml-2 h-4 w-4" /></Button></div> : <div className="flex min-h-[178px] flex-col items-center justify-center text-center"><CircleCheck className="h-9 w-9 text-emerald-300" /><p className="mt-3 text-sm font-medium text-white">No maintenance action proposed</p><p className="mt-1 max-w-sm text-xs leading-5 text-slate-500">The healthy synthetic baseline does not produce an actionable maintenance recommendation.</p></div>}</CardContent></Card></section>
+
+  <section id="engineering" className="mt-6 rounded-2xl border border-white/8 bg-white/[.025] p-5 sm:p-6"><div className="flex flex-col justify-between gap-5 lg:flex-row"><div><div className="flex items-center gap-2 text-sm font-semibold text-white"><Sparkles className="h-4 w-4 text-cyan-200" /> Engineering basis</div><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">{engineering?.formula} The current twin uses a transparent, deterministic pump-curve and system-resistance approximation to make calculations auditable before physical test-rig data are connected.</p></div><div className="rounded-xl border border-cyan-200/15 bg-cyan-300/[.04] px-4 py-3"><p className="text-[11px] font-medium uppercase tracking-[.13em] text-cyan-200">Data integrity</p><p className="mt-1 text-xs leading-5 text-slate-400">{snapshot.dataStatus.notice}</p></div></div><div className="mt-6 grid gap-3 md:grid-cols-3">{engineering?.assumptions.map((assumption, index) => <div key={assumption} className="rounded-xl border border-white/7 bg-black/10 p-4"><Box className="h-4 w-4 text-violet-200" /><p className="mt-3 text-xs leading-5 text-slate-400"><span className="mr-1 font-semibold text-slate-200">0{index + 1}.</span>{assumption}</p></div>)}</div></section>
+  </div></DashboardLayout>;
 }
