@@ -30,3 +30,4 @@
 - [x] Debug the landing-page sign-in click, OAuth/session path, environment configuration, backend endpoint, and runtime logs end to end.
 - [x] Add a deterministic local/demo session flow that remains disabled outside local/demo mode and preserves protected API authorization.
 - [x] Verify local sign-in opens the protected Control Tower and that protected tRPC data loads with a real session.
+- [x] Make npm/package scripts Windows-friendly while preserving macOS/Linux support, and document the local setup commands.

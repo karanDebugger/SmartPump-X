@@ -80,6 +80,20 @@ pnpm install
 pnpm dev
 ```
 
+### Windows (PowerShell)
+
+The npm scripts are cross-platform; no Bash-specific `NODE_ENV=...` syntax is required. In **PowerShell**, use the same commands after installing Node.js 22+ and pnpm 10+:
+
+```powershell
+git clone https://github.com/karanDebugger/SmartPump-X.git
+Set-Location SmartPump-X
+corepack enable
+pnpm install
+pnpm dev:local
+```
+
+`pnpm dev:local` starts the application on `http://localhost:3001`, which is the recommended Windows local-demo URL. `pnpm dev` uses the default available application port. Both scripts work on Windows, macOS, and Linux.
+
 Run the quality checks with:
 
 ```bash
