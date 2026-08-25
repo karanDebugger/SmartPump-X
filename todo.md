@@ -35,3 +35,6 @@
 - [x] Remove sign-in from the synthetic viewer dashboard while keeping operational, ingestion, calibration, approval, and configuration actions protected.
 - [x] Verify guest dashboard data loads and that privileged procedures remain unauthorized for unauthenticated visitors.
 - [x] Push the completed sign-in-free guest dashboard update to https://github.com/karanDebugger/SmartPump-X.git and verify remote main.
+- [x] Add bounded, editable synthetic simulation inputs that recalculate the public digital twin without altering physical telemetry or protected operations.
+- [x] Build a guest-accessible input panel with reset controls, live scenario calculations, and clear synthetic-data provenance.
+- [x] Test input validation, overridden operating-point calculations, and privileged-operation protection after simulation changes.

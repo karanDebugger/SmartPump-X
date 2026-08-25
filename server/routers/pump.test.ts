@@ -27,6 +27,20 @@ describe("pump router contracts", () => {
     expect(scenarios.length).toBeGreaterThan(0);
   });
 
+  it("recalculates a guest dashboard operating point from bounded input overrides", async () => {
+    const caller = pumpRouter.createCaller(anonymousContext());
+    const baseline = await caller.snapshot({ scenario: "normal" });
+    const adjusted = await caller.snapshot({ scenario: "normal", inputs: { rpm: 2200, staticHeadM: 5, resistanceMultiplier: 2.5, inletTemperatureC: 32 } });
+    expect(adjusted.sensors.rpm.value).toBe(2200);
+    expect(adjusted.calculations.headM).not.toBe(baseline.calculations.headM);
+    expect(adjusted.sensors.temperature.value).toBeGreaterThan(baseline.sensors.temperature.value);
+  });
+
+  it("rejects guest simulation input outside the declared physical demonstration bounds", async () => {
+    const caller = pumpRouter.createCaller(anonymousContext());
+    await expect(caller.snapshot({ scenario: "normal", inputs: { rpm: 4500 } })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
   it("keeps controlled simulation mutations protected for an anonymous guest", async () => {
     const caller = pumpRouter.createCaller(anonymousContext());
     await expect(caller.recordSimulationRun({ scenario: "bearing", operatorNote: "Attempting an unauthenticated simulation audit request." })).rejects.toMatchObject({ code: "UNAUTHORIZED" });

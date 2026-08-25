@@ -1,6 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import SimulationControls from "@/components/SimulationControls";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Activity, BellRing, BookOpenCheck, ClipboardCheck, Gauge, LayoutDashboard, LogOut, PanelLeft, Radio, ShieldCheck, Wrench } from "lucide-react";
+import { Activity, BellRing, BookOpenCheck, ClipboardCheck, Gauge, LayoutDashboard, LogOut, PanelLeft, Radio, ShieldCheck, SlidersHorizontal, Wrench } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import {
   Sidebar,
@@ -19,6 +20,7 @@ import { Button } from "./ui/button";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Control tower", anchor: "overview" },
+  { icon: SlidersHorizontal, label: "Simulation inputs", anchor: "simulation-inputs" },
   { icon: Gauge, label: "Digital twin", anchor: "digital-twin" },
   { icon: Activity, label: "Telemetry", anchor: "telemetry" },
   { icon: BellRing, label: "Conditions", anchor: "conditions" },
@@ -114,7 +116,7 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
       </div>
       <SidebarInset className="bg-[#07111a] text-slate-100">
         {isMobile && <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-white/8 bg-[#07111a]/95 px-3 backdrop-blur"><SidebarTrigger className="border border-white/10 bg-white/5 text-slate-100" /><span className="text-sm font-medium">SmartPump-X</span></div>}
-        <main className="min-h-screen flex-1">{children}</main>
+        <main className="min-h-screen flex-1"><SimulationControls />{children}</main>
       </SidebarInset>
     </>
   );

@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { scenarioKinds } from "../../shared/smartPump";
+import { scenarioKinds, simulationInputBounds } from "../../shared/smartPump";
 import { DEMO_DATASET_VERSION, createDeterministicDemoTrend } from "../demoDataset";
 import { createSimulationPreviewAudit } from "../db";
 import { createSnapshot, scenarioDetails } from "../pumpEngine";
@@ -8,6 +8,12 @@ import { isTelemetryBridgeAuthorized } from "../telemetryAuth";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 
 const scenarioSchema = z.enum(scenarioKinds);
+const simulationInputsSchema = z.object({
+  rpm: z.number().min(simulationInputBounds.rpm.min).max(simulationInputBounds.rpm.max).optional(),
+  staticHeadM: z.number().min(simulationInputBounds.staticHeadM.min).max(simulationInputBounds.staticHeadM.max).optional(),
+  resistanceMultiplier: z.number().min(simulationInputBounds.resistanceMultiplier.min).max(simulationInputBounds.resistanceMultiplier.max).optional(),
+  inletTemperatureC: z.number().min(simulationInputBounds.inletTemperatureC.min).max(simulationInputBounds.inletTemperatureC.max).optional(),
+}).optional();
 
 const engineerProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (!ctx.user || !["admin", "engineer"].includes(ctx.user.role)) {
@@ -34,15 +40,15 @@ export const pumpRouter = router({
     })),
   ),
   snapshot: publicProcedure
-    .input(z.object({ scenario: scenarioSchema }))
-    .query(({ input }) => createSnapshot(input.scenario)),
+    .input(z.object({ scenario: scenarioSchema, inputs: simulationInputsSchema }))
+    .query(({ input }) => createSnapshot(input.scenario, input.inputs)),
   trend: publicProcedure
-    .input(z.object({ scenario: scenarioSchema, windowMinutes: z.number().int().min(60).max(1_440) }))
-    .query(({ input }) => createDeterministicDemoTrend(input.scenario, input.windowMinutes)),
+    .input(z.object({ scenario: scenarioSchema, windowMinutes: z.number().int().min(60).max(1_440), inputs: simulationInputsSchema }))
+    .query(({ input }) => createDeterministicDemoTrend(input.scenario, input.windowMinutes, input.inputs)),
   engineeringPreview: publicProcedure
-    .input(z.object({ scenario: scenarioSchema }))
+    .input(z.object({ scenario: scenarioSchema, inputs: simulationInputsSchema }))
     .query(({ input }) => {
-      const snapshot = createSnapshot(input.scenario);
+      const snapshot = createSnapshot(input.scenario, input.inputs);
       return {
         formula: "P_h = ρgQH; η_wire-to-water = P_h / P_electrical",
         assumptions: [
@@ -54,9 +60,9 @@ export const pumpRouter = router({
       };
     }),
   maintenance: publicProcedure
-    .input(z.object({ scenario: scenarioSchema }))
+    .input(z.object({ scenario: scenarioSchema, inputs: simulationInputsSchema }))
     .query(({ input }) => {
-      const snapshot = createSnapshot(input.scenario);
+      const snapshot = createSnapshot(input.scenario, input.inputs);
       return {
         maintenance: snapshot.maintenance,
         source: snapshot.dataStatus.origin,

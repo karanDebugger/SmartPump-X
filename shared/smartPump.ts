@@ -15,6 +15,27 @@ export type DataOrigin = "measured" | "calculated" | "estimated" | "synthetic";
 export type DataQuality = "good" | "degraded" | "suspect" | "missing";
 export type HealthBand = "healthy" | "watch" | "warning" | "critical" | "severe";
 
+export type SimulationInputs = {
+  rpm: number;
+  staticHeadM: number;
+  resistanceMultiplier: number;
+  inletTemperatureC: number;
+};
+
+export const simulationInputDefaults: SimulationInputs = {
+  rpm: 2850,
+  staticHeadM: 1.8,
+  resistanceMultiplier: 1,
+  inletTemperatureC: 25,
+};
+
+export const simulationInputBounds = {
+  rpm: { min: 1800, max: 3300, step: 50, label: "Drive speed", unit: "rpm" },
+  staticHeadM: { min: 0.5, max: 12, step: 0.1, label: "Static head", unit: "m" },
+  resistanceMultiplier: { min: 0.35, max: 6, step: 0.05, label: "System resistance", unit: "× nominal" },
+  inletTemperatureC: { min: 10, max: 40, step: 1, label: "Inlet temperature", unit: "°C" },
+} as const;
+
 export type SensorValue = {
   value: number;
   unit: string;

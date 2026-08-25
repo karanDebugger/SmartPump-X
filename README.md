@@ -67,6 +67,17 @@ flowchart LR
 
 The synthetic dashboard is public and requires no sign-in. Authentication remains required for operational actions such as creating calibrations, submitting or approving controlled tests, recording evidence, and interacting with the machine telemetry bridge.
 
+The dashboard also includes an **Adjustable simulation inputs** panel. Drive speed, static head, system-resistance multiplier, and inlet temperature are bounded synthetic inputs that recalculate the current local view only. They do not modify database telemetry, publish MQTT messages, or operate equipment.
+
+| Guest-editable synthetic input | Allowed range | Baseline | Effect on the transparent twin |
+|---|---:|---:|---|
+| Drive speed | 1,800–3,300 rpm | 2,850 rpm | Rescales the demonstration pump curve and changes the calculated operating point. |
+| Static head | 0.5–12 m | 1.8 m | Changes the static component of the system curve. |
+| System resistance | 0.35–6.00 × nominal | 1.00 × | Changes the friction/resistance component of the system curve. |
+| Inlet temperature | 10–40 °C | 25 °C | Changes the synthetic temperature view and derived temperature trend. |
+
+Values take effect when the field is committed with **Enter** or by moving focus away. Out-of-range entries are clamped intentionally at commit time, and **Reset baseline** restores the documented values. The inputs are held only in browser memory; refreshing the page resets them and no simulation setting is persisted.
+
 ### Prerequisites
 
 - Node.js 22 or later

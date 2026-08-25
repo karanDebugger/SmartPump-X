@@ -1,4 +1,4 @@
-import type { FaultEvidence, HealthBand, ScenarioKind, TrendPoint, TwinSnapshot } from "../shared/smartPump";
+import { simulationInputDefaults, type FaultEvidence, type HealthBand, type ScenarioKind, type SimulationInputs, type TrendPoint, type TwinSnapshot } from "../shared/smartPump";
 
 const WATER_DENSITY_KG_M3 = 998;
 const GRAVITY_M_S2 = 9.80665;
@@ -200,14 +200,15 @@ export function scenarioDetails(scenario: ScenarioKind) {
   return scenarioConfiguration[scenario];
 }
 
-export function createSnapshot(scenario: ScenarioKind): TwinSnapshot {
+export function createSnapshot(scenario: ScenarioKind, inputOverrides: Partial<SimulationInputs> = {}): TwinSnapshot {
   const config = scenarioConfiguration[scenario];
-  const rpm = NOMINAL_RPM;
+  const inputs = { ...simulationInputDefaults, ...inputOverrides };
+  const rpm = inputs.rpm;
   const speedRatio = rpm / NOMINAL_RPM;
   const shutoffHead = 47 * speedRatio ** 2 * config.pumpHeadMultiplier;
   const pumpCurveCoefficient = 15_700_000;
-  const staticHead = 1.8;
-  const systemResistanceCoefficient = 76_000_000 * config.systemResistanceMultiplier;
+  const staticHead = inputs.staticHeadM;
+  const systemResistanceCoefficient = 76_000_000 * config.systemResistanceMultiplier * inputs.resistanceMultiplier;
 
   let low = 0;
   let high = 0.00135;
@@ -227,11 +228,11 @@ export function createSnapshot(scenario: ScenarioKind): TwinSnapshot {
   const suctionPressureBar = 0.18 - (scenario === "cavitationLike" ? 0.09 : 0);
   const dischargePressureBar = suctionPressureBar + differentialPressureBar;
   const hydraulicPower = WATER_DENSITY_KG_M3 * GRAVITY_M_S2 * trueFlow * pumpHead;
-  const expectedFlow = NOMINAL_FLOW_M3_S * 60_000;
+  const expectedFlow = NOMINAL_FLOW_M3_S * speedRatio * 60_000;
   const operatingOffset = Math.abs(trueFlow / NOMINAL_FLOW_M3_S - 1);
   const efficiency = clamp(0.7 - 0.22 * operatingOffset - config.efficiencyPenalty, 0.29, 0.72);
   const electricalInput = hydraulicPower / efficiency;
-  const baseTemperature = 35 + 7 * (electricalInput / 500);
+  const baseTemperature = inputs.inletTemperatureC + 10 + 7 * (electricalInput / 500);
   const temperature = baseTemperature + config.temperatureDelta;
   const vibration = config.vibrationBase + 0.25 * operatingOffset;
   const current = electricalInput / NOMINAL_VOLTAGE + config.currentDelta;
@@ -260,7 +261,7 @@ export function createSnapshot(scenario: ScenarioKind): TwinSnapshot {
     dataStatus: {
       origin: "synthetic",
       quality: config.quality,
-      notice: scenario === "normal" ? "Synthetic physics-based demonstration data. No sensor validation is claimed." : "Synthetic fault-injection preview. This is not a physical fault confirmation.",
+      notice: scenario === "normal" ? "Synthetic physics-based demonstration data recalculated from the visible user inputs. No sensor validation is claimed." : "Synthetic fault-injection preview recalculated from the visible user inputs. This is not a physical fault confirmation.",
     },
     health: { score: healthScore, band, confidence },
     sensors: {
@@ -294,8 +295,9 @@ export function createSnapshot(scenario: ScenarioKind): TwinSnapshot {
   };
 }
 
-export function createTrend(scenario: ScenarioKind, windowMinutes: number): TrendPoint[] {
-  const snapshot = createSnapshot(scenario);
+export function createTrend(scenario: ScenarioKind, windowMinutes: number, inputOverrides: Partial<SimulationInputs> = {}): TrendPoint[] {
+  const snapshot = createSnapshot(scenario, inputOverrides);
+  const inletTemperature = inputOverrides.inletTemperatureC ?? simulationInputDefaults.inletTemperatureC;
   const points = 36;
   const stepMinutes = windowMinutes / (points - 1);
   const now = Date.now();
@@ -310,9 +312,9 @@ export function createTrend(scenario: ScenarioKind, windowMinutes: number): Tren
     const flowShift = (snapshot.sensors.flow.value - 42) * progression;
     return {
       timestamp: now - Math.round((points - 1 - index) * stepMinutes * 60_000),
-      flowLpm: round(42 + flowShift + ripple, 1),
-      pressureBar: round(3.76 + (snapshot.sensors.differentialPressure.value - 3.76) * progression + ripple * 0.02, 2),
-      temperatureC: round(39 + temperatureRise + ripple * 0.25, 1),
+      flowLpm: round(snapshot.calculations.expectedFlowLpm + flowShift + ripple, 1),
+      pressureBar: round(snapshot.sensors.differentialPressure.value + ripple * 0.02, 2),
+      temperatureC: round(inletTemperature + 10 + temperatureRise + ripple * 0.25, 1),
       vibrationMmS: round(0.82 + vibrationRise + ripple * 0.04, 2),
       healthScore: Math.round(96 - healthDrop - ripple * 0.5),
       realPowerW: round(440 + (snapshot.sensors.realPower.value - 440) * progression + ripple * 2, 1),

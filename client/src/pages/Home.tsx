@@ -1,6 +1,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import OperationsPanel from "@/components/OperationsPanel";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useSimulation } from "@/contexts/SimulationContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,9 +53,10 @@ function TwinDiagram({ snapshot }: { snapshot: TwinSnapshot }) {
 
 export default function Home() {
   const { user } = useAuth();
+  const { inputs } = useSimulation();
   const [scenario, setScenario] = useState<ScenarioKind>("normal");
-  const snapshotInput = useMemo(() => ({ scenario }), [scenario]);
-  const trendInput = useMemo(() => ({ scenario, windowMinutes: 360 }), [scenario]);
+  const snapshotInput = useMemo(() => ({ scenario, inputs }), [scenario, inputs]);
+  const trendInput = useMemo(() => ({ scenario, windowMinutes: 360, inputs }), [scenario, inputs]);
   const { data: snapshot, isLoading: snapshotLoading } = trpc.pump.snapshot.useQuery(snapshotInput, { retry: false });
   const { data: trend = [], isLoading: trendLoading } = trpc.pump.trend.useQuery(trendInput, { retry: false });
   const { data: scenarios = [] } = trpc.pump.scenarios.useQuery(undefined, { retry: false });
