@@ -7,9 +7,16 @@ import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
 
 export async function setupVite(app: Express, server: Server) {
+  // The managed preview terminates TLS on the public hostname and proxies the
+  // single application port. Without an explicit client port Vite falls back
+  // to localhost:5173 for HMR, which is unreachable from the browser.
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server },
+    hmr: {
+      server,
+      clientPort: 443,
+      protocol: "wss" as const,
+    },
     allowedHosts: true as const,
   };
 

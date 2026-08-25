@@ -21,3 +21,4 @@
 - [x] Add a calibration-status query and commissioning view that lists active revisions by asset and sensor.
 - [x] Add asset, scenario, status, and time-window filters to the controlled-test event history API and user interface.
 - [x] Add persisted request, approval, execution, closure, history, and report API workflow tests with transition assertions.
+- [x] Fix the Vite HMR WebSocket connection through the managed development-preview proxy and verify the browser console is clean after restart.
