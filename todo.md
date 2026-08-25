@@ -34,4 +34,4 @@
 - [x] Commit and push the latest authentication repair and Windows-compatible package updates to https://github.com/karanDebugger/SmartPump-X.git, then verify remote main.
 - [x] Remove sign-in from the synthetic viewer dashboard while keeping operational, ingestion, calibration, approval, and configuration actions protected.
 - [x] Verify guest dashboard data loads and that privileged procedures remain unauthorized for unauthenticated visitors.
-- [ ] Push the completed sign-in-free guest dashboard update to https://github.com/karanDebugger/SmartPump-X.git and verify remote main.
+- [x] Push the completed sign-in-free guest dashboard update to https://github.com/karanDebugger/SmartPump-X.git and verify remote main.
