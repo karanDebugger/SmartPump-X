@@ -31,4 +31,4 @@
 - [x] Add a deterministic local/demo session flow that remains disabled outside local/demo mode and preserves protected API authorization.
 - [x] Verify local sign-in opens the protected Control Tower and that protected tRPC data loads with a real session.
 - [x] Make npm/package scripts Windows-friendly while preserving macOS/Linux support, and document the local setup commands.
-- [ ] Commit and push the latest authentication repair and Windows-compatible package updates to https://github.com/karanDebugger/SmartPump-X.git, then verify remote main.
+- [x] Commit and push the latest authentication repair and Windows-compatible package updates to https://github.com/karanDebugger/SmartPump-X.git, then verify remote main.
