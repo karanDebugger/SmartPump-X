@@ -25,7 +25,7 @@ export const pumpRouter = router({
       }
       return { authorized: true as const, mode: "ingestion_only" as const, actuation: false as const };
     }),
-  scenarios: protectedProcedure.query(() =>
+  scenarios: publicProcedure.query(() =>
     scenarioKinds.map(key => ({
       key,
       label: scenarioDetails(key).label,
@@ -33,13 +33,13 @@ export const pumpRouter = router({
       description: scenarioDetails(key).likelyCondition,
     })),
   ),
-  snapshot: protectedProcedure
+  snapshot: publicProcedure
     .input(z.object({ scenario: scenarioSchema }))
     .query(({ input }) => createSnapshot(input.scenario)),
-  trend: protectedProcedure
+  trend: publicProcedure
     .input(z.object({ scenario: scenarioSchema, windowMinutes: z.number().int().min(60).max(1_440) }))
     .query(({ input }) => createDeterministicDemoTrend(input.scenario, input.windowMinutes)),
-  engineeringPreview: protectedProcedure
+  engineeringPreview: publicProcedure
     .input(z.object({ scenario: scenarioSchema }))
     .query(({ input }) => {
       const snapshot = createSnapshot(input.scenario);
@@ -53,7 +53,7 @@ export const pumpRouter = router({
         calculations: snapshot.calculations,
       };
     }),
-  maintenance: protectedProcedure
+  maintenance: publicProcedure
     .input(z.object({ scenario: scenarioSchema }))
     .query(({ input }) => {
       const snapshot = createSnapshot(input.scenario);

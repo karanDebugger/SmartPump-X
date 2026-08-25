@@ -65,6 +65,8 @@ flowchart LR
 
 ## Quick Start
 
+The synthetic dashboard is public and requires no sign-in. Authentication remains required for operational actions such as creating calibrations, submitting or approving controlled tests, recording evidence, and interacting with the machine telemetry bridge.
+
 ### Prerequisites
 
 - Node.js 22 or later

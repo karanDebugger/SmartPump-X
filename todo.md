@@ -32,3 +32,5 @@
 - [x] Verify local sign-in opens the protected Control Tower and that protected tRPC data loads with a real session.
 - [x] Make npm/package scripts Windows-friendly while preserving macOS/Linux support, and document the local setup commands.
 - [x] Commit and push the latest authentication repair and Windows-compatible package updates to https://github.com/karanDebugger/SmartPump-X.git, then verify remote main.
+- [x] Remove sign-in from the synthetic viewer dashboard while keeping operational, ingestion, calibration, approval, and configuration actions protected.
+- [x] Verify guest dashboard data loads and that privileged procedures remain unauthorized for unauthenticated visitors.

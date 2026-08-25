@@ -8,7 +8,18 @@ function contextFor(role: "admin" | "engineer" | "viewer" | "user"): TrpcContext
   return { user: { id: 1, openId: `operations-${role}`, name: "Operator", email: "operator@example.com", loginMethod: "test", role, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() }, req: {} as TrpcContext["req"], res: {} as TrpcContext["res"] };
 }
 
+function anonymousContext(): TrpcContext {
+  return { user: null, req: {} as TrpcContext["req"], res: {} as TrpcContext["res"] };
+}
+
 describe("SmartPump-X operational contracts", () => {
+  it("keeps operational reads and control actions unavailable to anonymous guests", async () => {
+    const caller = operationsRouter.createCaller(anonymousContext());
+    await expect(caller.mqttContract()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(caller.commissioning()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(caller.requestFaultTest({ assetTag: "P-101", scenario: "bearing", objective: "Attempt an unauthorized controlled test request.", riskLevel: "low", scheduledAt: Date.now() + 60_000 })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
   it("rejects control-shaped fields on the one-way telemetry bridge", () => {
     const result = validateBridgeTelemetry({ bridgeToken: "x".repeat(32), assetTag: "P-101", sensorKey: "FT-101", metric: "flow", value: 42, unit: "L/min", capturedAt: Date.now(), calibrationRevision: "CAL-01", payloadKeys: ["value", "start"] });
     expect(result).toMatchObject({ valid: false });

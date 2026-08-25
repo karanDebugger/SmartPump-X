@@ -10,7 +10,28 @@ function contextFor(role: "admin" | "engineer" | "viewer" | "user"): TrpcContext
   };
 }
 
+function anonymousContext(): TrpcContext {
+  return { user: null, req: {} as TrpcContext["req"], res: {} as TrpcContext["res"] };
+}
+
 describe("pump router contracts", () => {
+  it("returns synthetic dashboard data to an anonymous guest", async () => {
+    const caller = pumpRouter.createCaller(anonymousContext());
+    const [snapshot, trend, scenarios] = await Promise.all([
+      caller.snapshot({ scenario: "normal" }),
+      caller.trend({ scenario: "normal", windowMinutes: 360 }),
+      caller.scenarios(),
+    ]);
+    expect(snapshot.dataStatus.origin).toBe("synthetic");
+    expect(trend).toHaveLength(36);
+    expect(scenarios.length).toBeGreaterThan(0);
+  });
+
+  it("keeps controlled simulation mutations protected for an anonymous guest", async () => {
+    const caller = pumpRouter.createCaller(anonymousContext());
+    await expect(caller.recordSimulationRun({ scenario: "bearing", operatorNote: "Attempting an unauthenticated simulation audit request." })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
   it("returns authenticated snapshot, trend and maintenance contracts", async () => {
     const caller = pumpRouter.createCaller(contextFor("viewer"));
     const [snapshot, trend, maintenance] = await Promise.all([
