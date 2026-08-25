@@ -22,3 +22,8 @@
 - [x] Add asset, scenario, status, and time-window filters to the controlled-test event history API and user interface.
 - [x] Add persisted request, approval, execution, closure, history, and report API workflow tests with transition assertions.
 - [x] Fix the Vite HMR WebSocket connection through the managed development-preview proxy and verify the browser console is clean after restart.
+- [x] Run a safe no-actuation fault-test request, approval, evidence, closure, and audit-report demonstration using the SmartPump-X workflow.
+- [x] Write a polished public-facing README with architecture, setup, safety boundaries, feature summary, and demo workflow instructions.
+- [x] Create a Hinglish presentation script that explains the SmartPump-X problem, solution, engineering model, safety controls, live demo, and roadmap.
+- [x] Validate repository hygiene, tests, and GitHub-ready files before publication.
+- [ ] Push the complete SmartPump-X repository to https://github.com/karanDebugger/SmartPump-X.git.

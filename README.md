@@ -1,66 +1,176 @@
 # SmartPump-X
 
-SmartPump-X is a **vendor-neutral centrifugal-pump condition-monitoring demonstrator**. It turns the project specification into a full-stack control-tower foundation with a transparent hydraulic model, explicit data provenance, controlled fault previews, explainable health assessments, and maintenance guidance.
+> **A vendor-neutral intelligent pump monitoring demonstrator with a transparent hydraulic digital twin, explainable condition intelligence, and safety-first test governance.**
 
-## Current implementation
+SmartPump-X is a full-stack mechanical-engineering software demonstrator for a low-pressure centrifugal-pump test rig. It combines an industrial control-tower interface with a deterministic hydraulic model, synthetic fault scenarios, calibrated telemetry-ingestion readiness, and an auditable controlled fault-test workflow.
 
-The first implemented release intentionally focuses on the evidence chain required before a physical prototype is connected:
+The project is intentionally **evidence-first**. It distinguishes measured, calculated, estimated, and synthetic values, and it does **not** claim manufacturer integration, physical-pump control, validated remaining-useful-life prediction, or production fault-detection accuracy.
 
-| Capability | Current behavior | Boundary |
-|---|---|---|
-| Hydraulic digital twin | Solves a deterministic pump-curve and system-resistance operating point, then derives head, hydraulic power, input power, wire-to-water efficiency, flow residual, and NPSH-margin proxy. | The curve and coefficients are demonstrator assumptions, not manufacturer data or a validated test-rig model. |
-| Condition simulator | Produces transparent synthetic scenarios for normal operation, bearing-related behavior, blockage, valve restriction, cavitation-like instability, motor overheating, sensor drift, and reduced flow. | Scenarios are safe software previews; they never operate hardware or assert a physical fault occurred. |
-| Health and recommendation logic | Computes a prototype health score from vibration, temperature, flow residual, efficiency, and data-quality penalties; it also exposes evidence and an operator-readable action. | The health score is not remaining useful life, failure probability, or validated predictive-maintenance accuracy. |
-| Control tower | Provides health, pump-loop visualization, trend views, engineering calculations, condition explanation, maintenance view, and persistent synthetic-data labels. | Dashboard values are **synthetic** or calculated from synthetic values until calibrated hardware ingestion is added. |
-| API and data model | Provides protected tRPC queries for snapshots, trends, engineering details, fault scenarios, and maintenance guidance. Engineer/admin-only scenario-preview requests write an audit-friendly `preview_only` record. The database schema includes assets, telemetry, assessments, events, recommendations, scenarios, and preview runs. | The preview endpoint has no MQTT publish path, actuator, or physical-pump-control capability. |
+## Why SmartPump-X?
 
-## Engineering basis
+The project addresses a practical engineering challenge: how to build a credible monitoring and condition-management workflow **before** a physical prototype, sensor calibration plan, and controlled fault-injection procedure are complete.
 
-The model uses `P_h = ρgQH`, with fixed water density of 998 kg/m³ and gravity of 9.80665 m/s². The twin solves an intersection between a simplified pump curve and a simplified system curve. Electrical input is derived using a bounded wire-to-water efficiency assumption, so `P_electrical > P_h` by design.
-
-The model is deliberately transparent rather than overclaimed. The present values are suitable for interface development, API validation, fault-workflow design, and unit-test coverage. They must be replaced or calibrated with documented pump-curve data, sensor ranges, sensor placement, sampling rates, calibration results, and a measured system curve before the system can be called an experimentally validated prototype.
-
-## Data provenance and safety
-
-Every dashboard experience must preserve these categories:
-
-| Origin | Meaning |
+| Engineering challenge | SmartPump-X response |
 |---|---|
-| `measured` | A calibrated physical instrument captured the value. |
-| `calculated` | The value was derived from stated formulas and inputs. |
-| `estimated` | A model estimated the value from other inputs. |
-| `synthetic` | The value came from the safe demonstration simulator. |
+| Operating point is difficult to explain | A transparent pump-curve and system-resistance digital twin derives flow, head, pressure, power, efficiency, and an NPSH-margin proxy. |
+| Early dashboards often overclaim data confidence | Every key value carries an explicit provenance and data-quality boundary. |
+| Fault tests need governance | Engineers can request a test; administrators approve or reject it; evidence, closure, and export are persisted in an audit trail. |
+| Telemetry needs calibration discipline | The one-way ESP32/MQTT bridge rejects unauthenticated, malformed, out-of-range, unit-mismatched, or uncalibrated payloads. |
+| A demo must never control equipment by accident | The software has **no MQTT publish path, actuator endpoint, start/stop command, or pump-speed control capability**. |
 
-The current release uses synthetic and calculated values only. It has no connection to Pentair production systems, no manufacturer integration, no physical actuator control, and no representation that fault predictions are production validated.
+## Features
 
-## Technical architecture
+| Area | Included capability |
+|---|---|
+| **Industrial control tower** | Responsive dark-mode dashboard for health, telemetry, conditions, maintenance, engineering basis, commissioning, telemetry bridge, and test workflow. |
+| **Hydraulic digital twin** | Deterministic pump and system curves; flow, head, differential pressure, hydraulic power, electrical power, wire-to-water efficiency, flow residual, and NPSH-margin proxy. |
+| **Condition simulator** | Transparent synthetic scenarios for normal operation, bearing degradation, impeller blockage, valve restriction, cavitation-like instability, overheating, sensor drift, and reduced flow. |
+| **Health intelligence** | Explainable prototype health score, confidence, evidence, probable condition, and maintenance recommendation. |
+| **Telemetry bridge** | A token-authenticated `POST /api/telemetry/ingest` endpoint for a broker-to-HTTP bridge; calibrated telemetry only. |
+| **Calibration governance** | Asset, sensor, metric, unit, valid range, revision, validity date, and approving operator are tracked before telemetry is stored. |
+| **CAD / BOM readiness** | Structured component-selection baseline and commissioning checklist for the future physical rig. |
+| **Controlled fault-test governance** | Request → approval/rejection → execution evidence → closure → filtered history → Markdown report export. |
+
+## Architecture
 
 ```mermaid
 flowchart LR
-  S[Calibrated sensors — future] --> E[ESP32 / edge validation — future]
-  E --> I[Telemetry ingestion contract — future]
-  I --> D[(Asset and telemetry tables)]
-  D --> T[Hydraulic twin + condition engine]
-  T --> A[Health, evidence, recommendation]
-  A --> C[SmartPump-X control tower]
-  X[Current synthetic scenario engine] --> T
+  subgraph Demonstration
+    SIM[Synthetic scenario engine] --> TWIN[Hydraulic digital twin]
+  end
+  subgraph Future test rig
+    SENSORS[Calibrated sensors] --> ESP[ESP32 / edge gateway]
+    ESP --> MQTT[MQTT broker]
+    MQTT --> BRIDGE[Broker-to-HTTP bridge]
+  end
+  BRIDGE -->|Token + calibrated payload| INGEST[Telemetry ingestion gate]
+  INGEST --> DB[(MySQL / TiDB)]
+  TWIN --> HEALTH[Health and evidence engine]
+  DB --> HEALTH
+  HEALTH --> UI[SmartPump-X control tower]
+  GOV[Fault-test approval workflow] --> DB
+  UI --> GOV
 ```
 
-## Next physical-integration gate
+## Technology Stack
 
-The next implementation step is **not** more AI. It is a controlled test-rig phase: select the pump and motor, establish the design point, create the Q–H system curve, fit the model to measurements, calibrate the flow/pressure/temperature/vibration/electrical channels, and define a repeatable, safe fault-injection protocol. Only then should MQTT/ESP32 ingestion, persisted event history, and model training be activated.
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, TypeScript, Tailwind CSS 4, shadcn/ui, Recharts |
+| Backend | Express 4, tRPC 11, Zod |
+| Persistence | MySQL-compatible database with Drizzle ORM |
+| Authentication | Manus OAuth with role-aware procedures |
+| Telemetry boundary | Authenticated HTTP ingestion endpoint for an external MQTT bridge |
+| Testing | Vitest |
 
-## Verification
+## Quick Start
 
-Run the automated suite with:
+### Prerequisites
+
+- Node.js 22 or later
+- pnpm 10 or later
+- A MySQL-compatible database when running persistence-dependent workflow features
+
+### Install and run
+
+```bash
+git clone https://github.com/karanDebugger/SmartPump-X.git
+cd SmartPump-X
+pnpm install
+pnpm dev
+```
+
+Run the quality checks with:
 
 ```bash
 pnpm test
 pnpm check
 ```
 
-The current tests verify healthy hydraulic consistency, degradation behavior, suspect sensor drift, trend chronology, and logout behavior.
+## Safe Demonstration Flow
 
-The release-specific verification gates are recorded in [`docs/acceptance-criteria.md`](docs/acceptance-criteria.md); the deterministic synthetic-data boundary is recorded in [`docs/synthetic-data-contract.md`](docs/synthetic-data-contract.md).
+1. Sign in to the **Control tower**.
+2. Open **Conditions** and choose a synthetic scenario, such as *Bearing degradation signature*.
+3. Review the health score, evidence, maintenance guidance, and engineering calculations.
+4. Open **Test workflow** and submit a **no-actuation** controlled test request.
+5. Approve it as an administrator, record software-only evidence, close the record, and download the generated Markdown audit report.
 
-The ESP32/MQTT bridge endpoint, calibration gate, and physical-broker deployment boundary are documented in [`docs/mqtt-bridge.md`](docs/mqtt-bridge.md).
+> The demonstration workflow only persists governance records. It does **not** send MQTT messages or operate a pump.
+
+## Telemetry Ingestion Contract
+
+The project is ready for a secure external MQTT bridge. The bridge subscribes to:
+
+```text
+smartpump/{assetTag}/telemetry
+```
+
+It forwards telemetry to:
+
+```text
+POST /api/telemetry/ingest
+Header: x-smartpump-telemetry-token: <shared-token>
+```
+
+Example payload:
+
+```json
+{
+  "assetTag": "P-101",
+  "sensorKey": "FT-101",
+  "metric": "flow",
+  "value": 42.1,
+  "unit": "L/min",
+  "capturedAt": 1760000000000,
+  "calibrationRevision": "CAL-FT101-01",
+  "quality": "good"
+}
+```
+
+The service accepts telemetry only after checking the bridge token, strict schema, timestamp window, active calibration revision, unit, and calibrated range. Control-shaped fields such as `command`, `start`, `stop`, `speed`, `setpoint`, and `actuator` are rejected.
+
+See [`docs/mqtt-bridge.md`](docs/mqtt-bridge.md) for the deployment boundary.
+
+## Engineering Basis and Safety Boundaries
+
+The hydraulic basis is:
+
+```text
+P_h = ρgQH
+η_wire-to-water = P_h / P_electrical
+```
+
+The present model uses fixed water density and gravity, plus demonstrator pump-curve and system-resistance assumptions. The model is useful for interface development, workflow validation, API contracts, and design discussion; it is **not** a substitute for a measured Q–H curve, calibrated sensor measurements, or a validated physical test rig.
+
+| Data origin | Meaning |
+|---|---|
+| `measured` | Captured by a calibrated physical instrument. |
+| `calculated` | Derived from stated formulas and traceable inputs. |
+| `estimated` | Inferred by a stated model. |
+| `synthetic` | Produced by the controlled software simulator. |
+
+## Repository Guide
+
+```text
+client/                 React control-tower interface
+server/                 tRPC, ingestion, engineering, workflow, and report logic
+drizzle/                Database schema and migrations
+shared/                 Shared engineering and operations contracts
+docs/                   Acceptance criteria, MQTT boundary, and presentation script
+server/*.test.ts        Vitest engineering, API, telemetry, and workflow coverage
+```
+
+## Documentation
+
+- [`docs/acceptance-criteria.md`](docs/acceptance-criteria.md) — implementation acceptance gates.
+- [`docs/synthetic-data-contract.md`](docs/synthetic-data-contract.md) — simulator provenance and data boundary.
+- [`docs/mqtt-bridge.md`](docs/mqtt-bridge.md) — one-way telemetry integration contract.
+- [`docs/PRESENTATION_SCRIPT_HINGLISH.md`](docs/PRESENTATION_SCRIPT_HINGLISH.md) — ready-to-deliver presentation narrative.
+
+## Roadmap
+
+The next engineering milestones are a selected pump/motor package, detailed CAD assembly, verified system curve, sensor selection and calibration certificates, a physical safety review, a controlled fault-injection test matrix, and a TLS-secured MQTT bridge deployment.
+
+## License
+
+Released under the [MIT License](LICENSE).
