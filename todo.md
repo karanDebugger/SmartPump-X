@@ -42,9 +42,9 @@
 - [x] Add engineering scenario comparison, operating-envelope assessment, and explainable calculation outputs for the public digital twin.
 - [x] Add telemetry data-quality observability, ingestion readiness diagnostics, and protected operational governance improvements.
 - [x] Improve control-tower navigation, responsive usability, accessibility semantics, and visualization robustness for guest and authenticated users.
-- [ ] Expand automated test coverage, operational documentation, release checks, checkpointing, and GitHub synchronization for the advanced release.
+- [x] Expand automated test coverage, operational documentation, release checks, checkpointing, and GitHub synchronization for the advanced release.
 - [x] Add a protected recent-telemetry quality summary and bridge-ingestion diagnostics with explicit no-actuation boundaries.
 - [x] Complete an accessibility and chart-container resilience pass for new advanced dashboard panels, then re-verify guest and authenticated layouts.
-- [ ] Save a checkpoint and push the completed advanced release to GitHub after all remaining checks pass.
+- [x] Save a checkpoint and push the completed advanced release to GitHub after all remaining checks pass.
 - [x] Browser-verify the authenticated local-demo dashboard, including Operational readiness and Telemetry quality panels, on desktop and mobile.
 - [x] Complete keyboard, landmark, heading, table-caption, focus, and screen-reader-label checks for the advanced panels before release.
