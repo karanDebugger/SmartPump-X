@@ -56,6 +56,7 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
   const isCollapsed = state === "collapsed";
   const isMobile = useIsMobile();
   const [isResizing, setIsResizing] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -79,9 +80,13 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
   }, [isResizing, setSidebarWidth]);
 
   const jumpTo = (anchor: string) => document.getElementById(anchor)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const handleLogin = () => {
+    const result = startLogin();
+    if (!result.started) setLoginError(result.error);
+  };
 
   if (loading) return <div className="min-h-screen bg-[#07111a]" />;
-  if (!user) return <div className="grid min-h-screen place-items-center bg-[#07111a] p-6 text-center"><div className="max-w-md rounded-2xl border border-white/10 bg-[#0b1d29] p-8"><div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-cyan-300/10 text-cyan-100"><ShieldCheck className="h-6 w-6" /></div><h1 className="mt-5 text-2xl font-semibold text-white">SmartPump-X control tower</h1><p className="mt-3 text-sm leading-6 text-slate-400">Sign in to review the protected synthetic demonstrator, calculation basis, and controlled scenario previews.</p><Button onClick={() => startLogin()} className="mt-6 w-full bg-cyan-300 text-slate-950 hover:bg-cyan-200">Sign in</Button></div></div>;
+  if (!user) return <div className="grid min-h-screen place-items-center bg-[#07111a] p-6 text-center"><div className="max-w-md rounded-2xl border border-white/10 bg-[#0b1d29] p-8"><div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-cyan-300/10 text-cyan-100"><ShieldCheck className="h-6 w-6" /></div><h1 className="mt-5 text-2xl font-semibold text-white">SmartPump-X control tower</h1><p className="mt-3 text-sm leading-6 text-slate-400">Sign in to review the protected synthetic demonstrator, calculation basis, and controlled scenario previews.</p>{loginError && <p role="alert" className="mt-4 rounded-lg border border-rose-300/20 bg-rose-300/10 p-3 text-xs leading-5 text-rose-100">{loginError}</p>}<Button onClick={handleLogin} className="mt-6 w-full bg-cyan-300 text-slate-950 hover:bg-cyan-200">Sign in</Button><p className="mt-3 text-xs text-slate-500">On localhost development, this creates a deterministic signed demo session. Production remains OAuth-protected.</p></div></div>;
 
   return (
     <>
@@ -108,7 +113,7 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
             {!isCollapsed && <div className="mx-4 mt-8 rounded-xl border border-cyan-300/10 bg-cyan-400/[0.04] p-3"><div className="flex items-center gap-2 text-xs font-medium text-cyan-200"><ShieldCheck className="h-4 w-4" /> Demonstration mode</div><p className="mt-2 text-[11px] leading-5 text-slate-400">All present telemetry is synthetic or derived. No physical pump is controlled.</p></div>}
           </SidebarContent>
           <SidebarFooter className="border-t border-white/8 p-3">
-            {user ? <div className="space-y-2"><div className="rounded-lg bg-white/5 px-3 py-2 group-data-[collapsible=icon]:hidden"><p className="truncate text-xs font-medium text-slate-100">{user.name ?? "Authenticated user"}</p><p className="mt-1 text-[10px] uppercase tracking-wider text-slate-500">{user.role}</p></div><Button variant="ghost" onClick={logout} className="w-full justify-start text-slate-300 hover:bg-white/8 hover:text-white"><LogOut className="mr-2 h-4 w-4" /><span className="group-data-[collapsible=icon]:hidden">Sign out</span></Button></div> : <Button onClick={() => startLogin()} className="w-full bg-cyan-300 text-slate-950 hover:bg-cyan-200"><span className="group-data-[collapsible=icon]:hidden">Engineer sign in</span><ShieldCheck className="h-4 w-4 group-data-[collapsible=icon]:block hidden" /></Button>}
+            {user ? <div className="space-y-2"><div className="rounded-lg bg-white/5 px-3 py-2 group-data-[collapsible=icon]:hidden"><p className="truncate text-xs font-medium text-slate-100">{user.name ?? "Authenticated user"}</p><p className="mt-1 text-[10px] uppercase tracking-wider text-slate-500">{user.role}</p></div><Button variant="ghost" onClick={logout} className="w-full justify-start text-slate-300 hover:bg-white/8 hover:text-white"><LogOut className="mr-2 h-4 w-4" /><span className="group-data-[collapsible=icon]:hidden">Sign out</span></Button></div> : <Button onClick={handleLogin} className="w-full bg-cyan-300 text-slate-950 hover:bg-cyan-200"><span className="group-data-[collapsible=icon]:hidden">Engineer sign in</span><ShieldCheck className="h-4 w-4 group-data-[collapsible=icon]:block hidden" /></Button>}
           </SidebarFooter>
         </Sidebar>
         {!isCollapsed && <div onMouseDown={() => setIsResizing(true)} className="absolute right-0 top-0 z-50 h-full w-1 cursor-col-resize transition-colors hover:bg-cyan-300/40" />}

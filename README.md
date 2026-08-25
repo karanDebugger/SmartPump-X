@@ -87,6 +87,12 @@ pnpm test
 pnpm check
 ```
 
+### Local authentication demo
+
+On `http://localhost` in non-production mode, the **Sign in** button creates a short-lived, signed, HTTP-only **viewer** session for `Local Demo Operator`. This least-privilege path exists only to test the protected control tower without external OAuth credentials. It is unavailable on preview and production hosts, and the resulting session still passes through the same `protectedProcedure` authorization checks as an OAuth session.
+
+For preview or production deployments, external OAuth remains the only sign-in path.
+
 ## Safe Demonstration Flow
 
 1. Sign in to the **Control tower**.

@@ -27,3 +27,6 @@
 - [x] Create a Hinglish presentation script that explains the SmartPump-X problem, solution, engineering model, safety controls, live demo, and roadmap.
 - [x] Validate repository hygiene, tests, and GitHub-ready files before publication.
 - [x] Push the complete SmartPump-X repository to https://github.com/karanDebugger/SmartPump-X.git.
+- [x] Debug the landing-page sign-in click, OAuth/session path, environment configuration, backend endpoint, and runtime logs end to end.
+- [x] Add a deterministic local/demo session flow that remains disabled outside local/demo mode and preserves protected API authorization.
+- [x] Verify local sign-in opens the protected Control Tower and that protected tRPC data loads with a real session.

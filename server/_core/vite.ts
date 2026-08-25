@@ -7,16 +7,15 @@ import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
 
 export async function setupVite(app: Express, server: Server) {
+  const isManagedPreview = Boolean(process.env.MANUS_WEBDEV_PROJECT_ID);
   // The managed preview terminates TLS on the public hostname and proxies the
-  // single application port. Without an explicit client port Vite falls back
-  // to localhost:5173 for HMR, which is unreachable from the browser.
+  // single application port. Local development must instead retain Vite's
+  // same-origin WS behavior, otherwise it would incorrectly attempt WSS:443.
   const serverOptions = {
     middlewareMode: true,
-    hmr: {
-      server,
-      clientPort: 443,
-      protocol: "wss" as const,
-    },
+    hmr: isManagedPreview
+      ? { server, clientPort: 443, protocol: "wss" as const }
+      : { server, clientPort: Number(process.env.PORT || 3000), protocol: "ws" as const },
     allowedHosts: true as const,
   };
 

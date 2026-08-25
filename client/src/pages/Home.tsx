@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import type { ScenarioKind, TwinSnapshot } from "@shared/smartPump";
 import { Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, Box, ChevronRight, CircleCheck, Droplets, Fan, Gauge, HeartPulse, Info, ShieldAlert, Sparkles, Thermometer, Waves, Wrench } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -50,13 +51,15 @@ function TwinDiagram({ snapshot }: { snapshot: TwinSnapshot }) {
 }
 
 export default function Home() {
+  const { user } = useAuth();
   const [scenario, setScenario] = useState<ScenarioKind>("normal");
   const snapshotInput = useMemo(() => ({ scenario }), [scenario]);
   const trendInput = useMemo(() => ({ scenario, windowMinutes: 360 }), [scenario]);
-  const { data: snapshot, isLoading: snapshotLoading } = trpc.pump.snapshot.useQuery(snapshotInput);
-  const { data: trend = [], isLoading: trendLoading } = trpc.pump.trend.useQuery(trendInput);
-  const { data: scenarios = [] } = trpc.pump.scenarios.useQuery();
-  const { data: engineering } = trpc.pump.engineeringPreview.useQuery(snapshotInput);
+  const protectedQueryOptions = { enabled: Boolean(user), retry: false };
+  const { data: snapshot, isLoading: snapshotLoading } = trpc.pump.snapshot.useQuery(snapshotInput, protectedQueryOptions);
+  const { data: trend = [], isLoading: trendLoading } = trpc.pump.trend.useQuery(trendInput, protectedQueryOptions);
+  const { data: scenarios = [] } = trpc.pump.scenarios.useQuery(undefined, protectedQueryOptions);
+  const { data: engineering } = trpc.pump.engineeringPreview.useQuery(snapshotInput, protectedQueryOptions);
 
   if (snapshotLoading || !snapshot) return <DashboardLayout><div className="p-6 lg:p-8"><Skeleton className="h-28 bg-white/8" /><div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-36 bg-white/8" />)}</div></div></DashboardLayout>;
 

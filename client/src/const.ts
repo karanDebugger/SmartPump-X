@@ -1,6 +1,13 @@
-import { OAUTH_STATE_COOKIE, encodeOAuthState } from "@shared/const";
+import { encodeOAuthState, OAUTH_STATE_COOKIE } from "@shared/const";
 
 export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+
+export type LoginStartResult = { started: true; mode: "oauth" | "local-demo" } | { started: false; error: string };
+
+function isLocalDemoOrigin() {
+  if (!import.meta.env.DEV || typeof window === "undefined") return false;
+  return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+}
 
 // Start the Manus OAuth login. Call this from an event handler or effect at the
 // moment you want to navigate, e.g. `onClick={() => startLogin()}`.
@@ -12,9 +19,22 @@ export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 // call would desync it from an in-flight login and the callback would reject it
 // with "invalid oauth state". It returns void by design, so there is no URL to
 // stash across renders.
-export const startLogin = () => {
+export const startLogin = (): LoginStartResult => {
+  // Local development has a deliberate, server-issued demonstration session so
+  // the protected control tower can be exercised without external OAuth keys.
+  if (isLocalDemoOrigin()) {
+    window.location.assign("/api/auth/local-demo?returnTo=/");
+    return { started: true, mode: "local-demo" };
+  }
+
   const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
   const appId = import.meta.env.VITE_APP_ID;
+  if (!oauthPortalUrl || !appId) {
+    return {
+      started: false,
+      error: "External OAuth is not configured for this origin. Use localhost development mode for the deterministic demo session or configure the OAuth environment variables.",
+    };
+  }
   const redirectUri = `${window.location.origin}/api/oauth/callback`;
 
   const nonce = crypto.randomUUID();
@@ -28,4 +48,5 @@ export const startLogin = () => {
   url.searchParams.set("type", "signIn");
 
   window.location.href = url.toString();
+  return { started: true, mode: "oauth" };
 };

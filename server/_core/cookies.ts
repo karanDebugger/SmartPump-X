@@ -39,10 +39,17 @@ export function getSessionCookieOptions(
   //       ? hostname
   //       : undefined;
 
+  const hostname = req.hostname?.toLowerCase() ?? "";
+  const secure = isSecureRequest(req);
+  const isPlainLocalhost = LOCAL_HOSTS.has(hostname) && !secure;
+
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
-    secure: isSecureRequest(req),
+    // Browsers reject SameSite=None cookies unless Secure is also set. Local
+    // HTTP development therefore uses Lax, while preview and production keep
+    // the cross-site OAuth-compatible None/Secure policy.
+    sameSite: isPlainLocalhost ? "lax" : "none",
+    secure,
   };
 }
